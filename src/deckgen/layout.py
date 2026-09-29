@@ -35,6 +35,10 @@ class Box:
     w: float
     h: float
 
+    def inset(self, dx: float, dy: float | None = None) -> Box:
+        dy = dx if dy is None else dy
+        return Box(self.x + dx, self.y + dy, self.w - 2 * dx, self.h - 2 * dy)
+
     def split_rows(self, weights: list[float], gap: float) -> list[Box]:
         usable = self.h - gap * (len(weights) - 1)
         total = sum(weights)

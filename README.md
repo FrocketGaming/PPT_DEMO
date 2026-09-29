@@ -182,14 +182,16 @@ mistake stops the build with a message naming the slide and the problem.
 | `templates_dir` | none | Extra folder to search for templates, relative to the config |
 | `date` | current month and year | Date shown on title slides (templates with a `date` role) |
 | `theme` | built-in, or read from the template | Colour and font overrides, see below |
+| `footer` | none | Built-in look: `{chapter: true}` shows the current section title in the footer; `{progress: true}` draws a progress bar along the bottom edge |
+| `decor` | `true` | Built-in look: decorative rings on title and closing slides |
 
 Templates are searched for in `templates_dir`, then `templates/` next to the config, then
 `templates/` one level up, then `./templates`.
 
 `theme` keys: `font`, `primary` (titles, table headers), `accent` (highlights, `**bold**`),
-`text`, `muted` (labels, footnotes), `light` (card and callout backgrounds), `positive`
-and `negative` (KPI deltas), and `palette` (list of chart series colours). Colours are hex,
-with or without `#`.
+`text`, `muted` (labels, footnotes), `light` (card and callout backgrounds), `subtle`
+(everything a chart `highlight` greys out), `positive` and `negative` (KPI deltas), and
+`palette` (list of chart series colours). Colours are hex, with or without `#`.
 
 ### `data`
 
@@ -221,9 +223,12 @@ table: {font_size: 11}}`. Anything set on the component itself wins.
 | `notes` | all | Speaker notes |
 | `skip` | all | `true` leaves the slide out of the build |
 | `font_size` | title, section, closing | Title size (built-in look only; templates use their own) |
+| `eyebrow` | all (built-in look) | Small uppercase kicker above the title, e.g. `Chapter 02` |
+| `background` | all (built-in look) | Slide colour: a theme colour name or hex. On a dark colour, text turns white and cards become a tint of the background |
+| `number` | section (built-in look) | Large faint numeral on the right, e.g. `"02"` |
 | `layout` | all (template only) | Use this template layout instead of the profile's default |
 | `placeholders` | all (template only) | Fill the layout's numbered boxes, see below |
-| `tag` | content (template only) | Small label, if the layout has one. Defaults to the latest section title |
+| `tag` | content | Chapter label: in a template's tag box, or in the footer with `deck.footer.chapter`. Defaults to the latest section title |
 | `date` | title (template only) | Overrides `deck.date` for this slide |
 
 A region is either a component (`left: {type: chart, ...}`) or a stack:
@@ -237,6 +242,9 @@ left:
 ```
 
 ### Components
+
+Any component can take `panel: true` (or a colour) to sit on a rounded, tinted backdrop,
+with `padding` (inches, default `0.2`) between the panel edge and the component.
 
 **`insights`**: bullet points.
 
@@ -257,7 +265,17 @@ left:
 | `valign` | `top` | `top`, `middle`, `bottom` |
 | `font_size` | `16` | Points |
 | `bold` | `false` | |
+| `italic` | `false` | |
 | `color` | `text` | Theme colour name or hex |
+
+**`quote`**: a pull quote with a large quotation mark.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `text` | | The quote |
+| `author`, `role` | none | Attribution lines under the quote |
+| `font_size` | `30` | Quote size |
+| `color` | `primary` | Quote colour |
 
 **`kpis`**: a row of metric cards.
 
@@ -265,6 +283,8 @@ left:
 |---|---|---|
 | `items` | | One card per item, see below |
 | `value_size` | `30` | Size of the big number on every card |
+| `style` | `flat` | `flat`, `accent` (accent bar down the left edge), `outline`, or `dark` (filled with the primary colour) |
+| `gap` | `0.25` | Space between cards in inches |
 
 Each item takes:
 
@@ -278,6 +298,8 @@ Each item takes:
 | `delta_label` | Text after the delta, e.g. `vs. plan` |
 | `higher_is_better` | Default `true`. Set `false` to show increases in the `negative` colour |
 | `value_size` | Overrides the row's `value_size` for this card |
+| `icon` | A glyph shown in an accent circle in the card's corner: any Unicode symbol, e.g. `"★"`, `"⏱"`, `"$"`, `"↗"` |
+| `note` | A small line under the value (or the delta) |
 
 A computed metric is `{source, column, agg}`, and it also accepts the
 [query keys](#data-queries). `agg` is one of `sum` (default), `mean`, `count`, `min`,
@@ -294,7 +316,7 @@ delta: {source: regional, column: revenue, where: {product: Pro}, group_by: quar
 
 | Key | Default | Meaning |
 |---|---|---|
-| `kind` | `column` | `column`, `stacked_column`, `bar`, `stacked_bar`, `line`, `area`, `pie`, `doughnut`, `scatter` |
+| `kind` | `column` | `column`, `stacked_column`, `stacked_column_100`, `bar`, `stacked_bar`, `stacked_bar_100`, `line`, `area`, `pie`, `doughnut`, `scatter`, `combo`, `waterfall` |
 | `data` | | Source name, or inline `{categories: [...], series: {Name: [...]}}` |
 | `x` | | Category column (the x values for `scatter`) |
 | `y` | | One value column or a list; each becomes a series |
@@ -310,9 +332,59 @@ delta: {source: regional, column: revenue, where: {product: Pro}, group_by: quar
 | `gridlines` | `true` | Horizontal gridlines |
 | `gap_width` | `60` | Space between bars, as a % of bar width |
 | `axis_min`, `axis_max` | automatic | Fix the value axis range, e.g. so side-by-side charts share a scale |
+| `highlight` | none | A category or series name, or a list. Those are drawn in the accent colour and everything else in `subtle` grey |
+| `direct_labels` | `false` | Line charts: name each line at its last point instead of using a legend |
+| `reference` | none | `{value: 230000, label: Target}`: a dashed horizontal line, labelled at its end. Column, stacked column, line, area and combo |
+| `line` | none | `combo` only: the `y` columns drawn as lines over the columns |
+| `totals` | none | `waterfall` only: categories whose value is a running total (drawn as full bars); other values are changes |
 | `font_size` | `11` | Points |
 
 Charts also accept the [query keys](#data-queries).
+
+```yaml
+# columns with the target as a line
+{type: chart, kind: combo, data: monthly, x: month, y: [revenue, target], line: [target]}
+# a bridge: first and last rows are totals, the rest are changes
+{type: chart, kind: waterfall, data: bridge, x: step, y: change, totals: [Q1, Q4]}
+```
+
+**`agenda`**: numbered chapters.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | Strings, or `{title, text, number}` |
+| `active` | none | Chapter number to highlight; the others are dimmed. Repeat the agenda with a different `active` to track progress through the deck |
+| `layout` | `rows` | `rows` or `columns` |
+| `font_size` | `20` | Title size; the description is 6pt smaller |
+
+**`timeline`**: steps from left to right.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | `{label, title, text}` per step. The label sits inside the chevron or above the dot |
+| `style` | `chevron` | `chevron` or `dots` |
+| `active` | none | Current step: drawn in the accent colour, earlier steps as done, later steps greyed |
+| `font_size` | `16` | Title size; the text is 3pt smaller |
+
+**`cycle`**: a lifecycle, with steps around a ring, clockwise from the top.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | `{title, text, icon}` per step. Without an `icon`, the node shows its number |
+| `center` | none | Text in the middle of the ring (`\n` for a line break) |
+| `active` | none | Step to highlight |
+| `radius` | `0.2` | Ring radius as a fraction of the region's width |
+| `label_width` | fits the region | Width of each step's label, in inches |
+
+**`progress`**: horizontal bars, one row per item.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | `{label, value, max, target, format, highlight, color}` per bar. `value`, `max` and `target` can be computed metrics |
+| `max` | `1` | Default full-bar value, so fractions work as-is |
+| `format` | none | Python format for the values, e.g. `"{:.0%}"` |
+| `label_width` | `0.3` | Share of the width used by labels |
+| `color` | `primary` | Bar colour; `highlight: true` on an item uses the accent colour |
 
 **`table`**
 

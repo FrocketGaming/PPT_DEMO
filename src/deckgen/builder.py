@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import sys
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,7 +33,8 @@ CONTENT = Box(MARGIN, 1.55, SLIDE_W - 2 * MARGIN, SLIDE_H - 1.55 - 0.6)
 REGION_KEYS = ("left", "center", "right", "top", "bottom", "full")
 SLIDE_TYPES = ("title", "section", "content", "closing")
 SLIDE_KEYS = {"type", "title", "subtitle", "source", "notes", "skip", "gap", "regions",
-              "font_size", "layout", "placeholders", "tag", "date", *REGION_KEYS}
+              "font_size", "layout", "placeholders", "tag", "date", "background", "eyebrow",
+              "number", *REGION_KEYS}
 
 
 class ConfigError(Exception):
@@ -77,42 +79,81 @@ def _small_text(slide, box: Box, text: str, theme: Theme, size: float = 10,
 
 # --------------------------------------------------------------------------- built-in look
 
-def _plain_title_slide(prs, slide_cfg: dict, theme: Theme, dark: bool = True):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
+def _background(slide, slide_cfg: dict, theme: Theme, default: str | None) -> Theme:
+    """Fills the slide background; returns the theme to draw on it with."""
+    color = slide_cfg.get("background", default)
+    if color is None:
+        return theme
     bg = slide.background.fill
     bg.solid()
-    bg.fore_color.rgb = theme.rgb("primary" if dark else "light")
-    band = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(MARGIN), Inches(3.55),
-                                  Inches(1.2), Inches(0.08))
-    band.fill.solid()
-    band.fill.fore_color.rgb = theme.rgb("accent")
-    band.line.fill.background()
+    bg.fore_color.rgb = theme.rgb(color)
+    return theme.on_background(color)
 
-    tf = components._textbox(slide, Box(MARGIN, 1.5, SLIDE_W - 2 * MARGIN, 1.95),
-                             anchor=MSO_ANCHOR.BOTTOM)
-    add_rich_text(tf.paragraphs[0], slide_cfg.get("title", ""), theme,
-                  slide_cfg.get("font_size", 40), color="FFFFFF" if dark else "primary", bold=True)
+
+def _title_block(slide, box: Box, slide_cfg: dict, theme: Theme, size: float) -> None:
+    """Title text, with the optional `eyebrow` (a small uppercase kicker) just above it."""
+    tf = components._textbox(slide, box, anchor=MSO_ANCHOR.BOTTOM)
+    p = tf.paragraphs[0]
+    if eyebrow := slide_cfg.get("eyebrow"):
+        add_rich_text(p, str(eyebrow).upper(), theme, max(12, size * 0.4), color="accent",
+                      bold=True)
+        p.space_after = Pt(size * 0.15)
+        p = tf.add_paragraph()
+    add_rich_text(p, slide_cfg.get("title", ""), theme, size, color="primary", bold=True)
+
+
+def _plain_title_slide(prs, slide_cfg: dict, theme: Theme, kind: str, deck: dict):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    base = theme
+    theme = _background(slide, slide_cfg, theme, "light" if kind == "section" else "primary")
+    bg = slide_cfg.get("background", "light" if kind == "section" else "primary")
+
+    if kind == "section" and (number := slide_cfg.get("number")) is not None:
+        tf = components._textbox(slide, Box(SLIDE_W / 2, 0.2, SLIDE_W / 2 - 0.3, SLIDE_H - 0.4),
+                                 anchor=MSO_ANCHOR.MIDDLE)
+        tf.paragraphs[0].alignment = components.ALIGN["right"]
+        add_rich_text(tf.paragraphs[0], str(number), theme, 300,
+                      color=base.mix(bg, "primary", 0.07), bold=True)
+    elif kind != "section" and deck.get("decor", True):
+        for x, y, d, t, color in ((8.9, 0.9, 7.2, 0.16, base.mix(bg, "FFFFFF", 0.07)),
+                                  (10.6, -1.3, 4.0, 0.035, base.hex("accent"))):
+            ring = components._shape(slide, MSO_SHAPE.DONUT, Box(x, y, d, d), base.rgb(color))
+            ring.adjustments[0] = t
+
+    components._shape(slide, MSO_SHAPE.RECTANGLE, Box(MARGIN, 3.55, 1.2, 0.08), theme.rgb("accent"))
+    _title_block(slide, Box(MARGIN, 0.8, SLIDE_W * 0.62, 2.65), slide_cfg, theme,
+                 slide_cfg.get("font_size", 40))
     if sub := slide_cfg.get("subtitle"):
-        tf2 = components._textbox(slide, Box(MARGIN, 3.85, SLIDE_W - 2 * MARGIN, 1.5))
-        add_rich_text(tf2.paragraphs[0], sub, theme, 20, color="D0D7E1" if dark else "muted")
+        _small_text(slide, Box(MARGIN, 3.85, SLIDE_W * 0.62, 1.5), sub, theme, 20)
+    if kind == "title" and (author := deck.get("author")):
+        _small_text(slide, Box(MARGIN, SLIDE_H - 1.0, 6, 0.4),
+                    f"**{author}**   ·   {slide_cfg.get('date', deck.get('date') or default_date())}",
+                    theme, 14)
     return slide
 
 
-def _plain_content_slide(prs, slide_cfg: dict, ctx: Context, defaults: dict, number: int):
-    theme = ctx.theme
+def _plain_content_slide(prs, slide_cfg: dict, ctx: Context, defaults: dict, number: int,
+                         total: int, section: str | None, footer: dict):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
+    ctx = replace(ctx, theme=_background(slide, slide_cfg, ctx.theme, None))
+    theme = ctx.theme
 
-    tf = components._textbox(slide, Box(MARGIN, 0.35, SLIDE_W - 2 * MARGIN, 0.75),
-                             anchor=MSO_ANCHOR.BOTTOM)
-    add_rich_text(tf.paragraphs[0], slide_cfg.get("title", ""), theme, 28, color="primary",
-                  bold=True)
+    _title_block(slide, Box(MARGIN, 0.2, SLIDE_W - 2 * MARGIN, 0.9), slide_cfg, theme, 28)
     if sub := slide_cfg.get("subtitle"):
         _small_text(slide, Box(MARGIN, 1.08, SLIDE_W - 2 * MARGIN, 0.4), sub, theme, 15)
     if src := slide_cfg.get("source"):
-        _small_text(slide, Box(MARGIN, SLIDE_H - 0.45, SLIDE_W - 2 * MARGIN - 1, 0.3),
+        _small_text(slide, Box(MARGIN, SLIDE_H - 0.45, SLIDE_W - 2 * MARGIN - 5, 0.3),
                     f"Source: {src}", theme)
     _small_text(slide, Box(SLIDE_W - MARGIN - 0.6, SLIDE_H - 0.45, 0.6, 0.3), str(number),
                 theme, align="right")
+    if footer.get("chapter") and (chapter := slide_cfg.get("tag", section)):
+        _small_text(slide, Box(SLIDE_W - MARGIN - 4.7, SLIDE_H - 0.45, 4, 0.3), f"**{chapter}**",
+                    theme, align="right")
+    if footer.get("progress") and total:
+        track = Box(0, SLIDE_H - 0.06, SLIDE_W, 0.06)
+        components._shape(slide, MSO_SHAPE.RECTANGLE, track, theme.rgb("light"))
+        components._shape(slide, MSO_SHAPE.RECTANGLE,
+                          Box(0, track.y, SLIDE_W * number / total, track.h), theme.rgb("accent"))
 
     regions = _regions(slide_cfg)
     if not regions:
@@ -258,6 +299,8 @@ def build(config_path: str | Path, output: str | Path | None = None) -> Path:
     props.subject = props.keywords = props.comments = props.category = ""
 
     section = None
+    footer = deck.get("footer") or {}
+    total = sum(1 for s in cfg.get("slides", []) if not s.get("skip"))
     for i, slide_cfg in enumerate(cfg.get("slides", []), start=1):
         if slide_cfg.get("skip"):
             continue
@@ -273,12 +316,11 @@ def build(config_path: str | Path, output: str | Path | None = None) -> Path:
                 slide = _template_slide(tpl, kind, slide_cfg, ctx, defaults, section, deck)
             elif slide_cfg.get("layout") or slide_cfg.get("placeholders"):
                 raise ValueError("'layout'/'placeholders' need a template (set deck.template)")
-            elif kind in ("title", "closing"):
-                slide = _plain_title_slide(prs, slide_cfg, theme)
-            elif kind == "section":
-                slide = _plain_title_slide(prs, slide_cfg, theme, dark=False)
+            elif kind in ("title", "section", "closing"):
+                slide = _plain_title_slide(prs, slide_cfg, theme, kind, deck)
             else:
-                slide = _plain_content_slide(prs, slide_cfg, ctx, defaults, len(prs.slides) + 1)
+                slide = _plain_content_slide(prs, slide_cfg, ctx, defaults, len(prs.slides) + 1,
+                                             total, section, footer)
         except Exception as exc:
             raise ConfigError(f"slide {i} ('{slide_cfg.get('title', '')}'): {exc}") from exc
         if notes := slide_cfg.get("notes"):

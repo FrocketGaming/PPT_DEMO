@@ -1,7 +1,8 @@
 # Branded demo: same slides as demo.yaml, built on templates/Brand Template.pptx.
 # Only the `deck.template` line differs; layouts, fonts and colours come from the template.
 # Regions:   left | center | right | top | bottom | full
-# Components (the `type:` of a region): insights | text | kpis | chart | table | image
+# Components (the `type:` of a region): insights | text | quote | kpis | progress | chart
+#                                        | table | image | agenda | timeline | cycle
 # Build:     uv run deckgen configs/demo_branded.yaml
 
 deck:
@@ -36,6 +37,7 @@ slides:
     top:
       type: kpis
       size: 0.28               # top band = 28% of content height
+      style: accent            # accent bar on each card (also: flat, outline, dark)
       items:
         - label: Total revenue
           value: {source: monthly, column: revenue, agg: sum}
@@ -55,11 +57,12 @@ slides:
           delta_label: vs. FY25
     left:
       type: chart
-      kind: line
+      kind: combo              # columns, with the `line:` series drawn as lines
       size: 2                  # left column is twice as wide as right
       data: monthly
       x: month
       y: [revenue, target]
+      line: [target]
       number_format: "$#,##0"
       axis_format: '$#,##0,"K"'
     right:
@@ -99,6 +102,8 @@ slides:
       type: chart
       kind: bar
       title: Revenue by region
+      panel: true              # tinted backdrop behind any component
+      highlight: West          # West in the accent colour, the rest in grey
       data: regional
       group_by: region         # aggregate transactions before charting
       x: region
@@ -112,6 +117,7 @@ slides:
       type: chart
       kind: doughnut
       title: Channel mix
+      panel: true
       data: channels
       x: channel
       y: share
@@ -121,6 +127,7 @@ slides:
       type: chart
       kind: column
       title: Units by product
+      panel: true
       data: regional
       group_by: product
       x: product
@@ -185,6 +192,7 @@ slides:
       data: campaigns
       x: campaign
       y: conversions
+      highlight: Holiday Blitz
       sort_by: conversions
       descending: true
       number_format: "#,##0"
@@ -205,15 +213,32 @@ slides:
 
   # ------------------------------------------------------------------ 9. closing
   - title: Next steps
-    center:
-      type: insights
-      style: callout
-      font_size: 22
-      heading: Recommendations
+    tag: Next steps            # chapter label (footer, or the template's tag box)
+    top:
+      size: 1.3
+      type: timeline           # chevrons; `style: dots` for a dotted line
+      active: 1                # current step in the accent colour, later steps greyed
       items:
-        - Shift **15%** of trade-show budget into online retargeting
-        - Expand the Pro tier push into the South region
-        - Re-baseline FY27 targets off the Q4 run-rate
+        - {label: Q1 FY27, title: Rebalance spend, text: "Shift **15%** of trade-show budget into online retargeting"}
+        - {label: Q2 FY27, title: Grow Pro in the South, text: Expand the Pro tier push into the South region}
+        - {label: Q3 FY27, title: Reset targets, text: Re-baseline FY27 targets off the Q4 run-rate}
+    bottom:
+      size: 1
+      type: kpis
+      style: outline
+      items:
+        - label: Trade Show return on spend
+          value: {source: campaigns, column: roas, agg: min}
+          format: "{:.1f}x"
+          note: the weakest campaign
+        - label: South revenue
+          value: {source: regional, column: revenue, agg: sum, where: {region: South}}
+          format: "${:,.0f}"
+          note: the smallest region
+        - label: Q4 revenue
+          value: {source: monthly, column: revenue, agg: sum, where: {month: [Oct, Nov, Dec]}}
+          format: "${:,.0f}"
+          note: the new quarterly run-rate
 
   - type: closing
     title: Thank you
