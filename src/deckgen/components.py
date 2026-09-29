@@ -328,6 +328,10 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
         va.format.line.fill.background()
         va.tick_labels.number_format = spec.get("axis_format", number_format)
         va.tick_labels.number_format_is_linked = False
+        if "axis_min" in spec:
+            va.minimum_scale = spec["axis_min"]
+        if "axis_max" in spec:
+            va.maximum_scale = spec["axis_max"]
         ca = chart.category_axis
         ca.format.line.color.rgb = theme.rgb("muted")
         ca.has_major_gridlines = False

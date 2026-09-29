@@ -1,349 +1,622 @@
-# Advanced demo: exercises most of what deckgen can do from one config file —
-# every chart kind but pie's cousins get a showing, every KPI aggregation
-# (sum, mean, count, min, max, growth), where/group_by/sort/limit queries
-# (including a list `where` and a multi-column `group_by`), inline data,
-# stacked regions, the `text` component, and a second data source joined
-# into the same deck as the original campaign/regional numbers.
+# Advanced demo: a complete annual business review, written as one YAML file.
+#
+# Every headline number is computed from the data when the deck is built. Change
+# a CSV, rebuild, and the KPI cards, charts and tables update themselves.
+#
 # Build:  uv run deckgen configs/demo_advanced.yaml
+#
+# Layout ideas this file shows (all built from the standard regions and components):
+#   agenda cards with live metrics   kpis whose `delta` is a computed growth figure
+#   hero number                      one oversized KPI card beside a column of cards
+#   a column of cards                a `stack` of single-card `kpis`
+#   small multiples                  the same chart three times, each with a `where`
+#   before → after                   a column of cards | arrow | a column of cards
+#   dashboard                        top + left + center + right + bottom on one slide
+#   scorecard grid                   a `stack` of kpi rows, kept short with YAML anchors
+#   roadmap                          kpi cards used as a timeline
+#
+# Data features: every KPI aggregation (sum, mean, count, min, max, first, last,
+# growth), `where` with single values and lists, `group_by` inside a KPI metric,
+# sort/limit, series_by pivots, and inline data sources that accept the same queries
+# as CSVs.
 
 deck:
-  title: FY2026 Growth & Customer Experience Review
+  title: "FY2026 Annual Business Review"
   author: Analytics Team
   theme:
-    primary: "#123C69"
-    accent: "#F4A261"
     font: Calibri
-    palette: ["123C69", "F4A261", "2A9D8F", "8ECAE6", "E76F51", "6D6875"]
+    primary: "#0B2545"     # deep navy: titles, table headers, title slides
+    accent: "#FF6B35"      # signal orange: **highlights**, bullets, callout bars
+    text: "#1B2432"
+    muted: "#5C6B7A"
+    light: "#EEF3F8"       # card and callout backgrounds
+    positive: "#13A89E"
+    negative: "#E63946"
+    palette: ["0B2545", "FF6B35", "13A89E", "8DA9C4", "F2C14E", "6C5B7B"]
 
-# Named data sources. Paths are relative to this file.
 data:
   monthly: ../data/monthly_sales.csv
   regional: ../data/sales_by_region.csv
   channels: ../data/channel_mix.csv
   campaigns: ../data/campaigns.csv
   support: ../data/support_metrics.csv
+  # Inline sources work like CSVs, so where/group_by/sort_by and KPI metrics apply too.
+  funnel:
+    - {stage: Site visitors, count: 412000}
+    - {stage: Leads, count: 38600}
+    - {stage: Trials started, count: 14900}
+    - {stage: Opportunities, count: 8300}
+    - {stage: Customers, count: 5132}
 
 defaults:
-  chart:
-    font_size: 11
-  insights:
-    font_size: 15
-  table:
-    font_size: 12
+  chart: {font_size: 12}
+  insights: {font_size: 16, spacing: 12}
+  table: {font_size: 13}
+  kpis: {value_size: 34}
 
 slides:
-  # ------------------------------------------------------------------ 1. title
+  # ================================================================== opening
   - type: title
-    title: FY2026 Growth & Customer Experience Review
-    subtitle: Revenue, regions, campaigns and support — all generated from one YAML file
-
-  # ------------------------------------------------------------------ 2. KPI row: sum, count, max and growth aggs
-  - title: Revenue grew every quarter, on the back of more campaigns, not fewer
-    subtitle: Full-year performance at a glance
-    source: monthly_sales.csv, campaigns.csv
+    title: "FY2026: the year growth started to compound"
+    subtitle: Annual business review  ·  Revenue, product, go-to-market and customer experience
     notes: >
-      The KPI row mixes four different aggregations off two data sources — sum, count,
-      max and growth — computed straight from the CSVs, no pre-calculated numbers in the YAML.
+      Every number in this deck is computed from the source data at build time.
+      Nothing on these slides was typed in by hand except the commentary.
+
+  # ------------------------------------------------------------------ agenda with live numbers
+  - title: Four chapters, one story
+    subtitle: Each chapter's headline number, calculated from its data source
     top:
       type: kpis
-      size: 0.28
+      size: 2.2
+      value_size: 44
       items:
-        - label: Total revenue
-          value: {source: monthly, column: revenue, agg: sum}
-          format: "${:,.0f}"
-        - label: Campaigns run
-          value: {source: campaigns, column: campaign, agg: count}
-          format: "{:,}"
-        - label: Best single month
-          value: {source: monthly, column: revenue, agg: max}
-          format: "${:,.0f}"
-        - label: Revenue growth Jan → Dec
-          value: {source: monthly, column: revenue, agg: growth}
-          format: "{:.0%}"
-          delta: "+6 pts"
-          delta_label: vs. plan
+        - label: "01  ·  Growth"
+          value: Revenue
+          delta: {source: monthly, column: revenue, agg: growth}
+          delta_format: "{:+.0%}"
+          delta_label: revenue, Jan → Dec
+        - label: "02  ·  Product & regions"
+          value: Pro mix
+          delta: {source: regional, column: revenue, agg: growth, where: {product: Pro}, group_by: quarter}
+          delta_format: "{:+.0%}"
+          delta_label: Pro revenue, Q1 → Q4
+        - label: "03  ·  Go-to-market"
+          value: ROI
+          delta: {source: campaigns, column: roas, agg: max}
+          delta_format: "{:.1f}x"
+          delta_label: best return on spend
+        - label: "04  ·  Customers"
+          value: Support
+          delta: {source: support, column: first_response_hours, agg: growth, group_by: month, group_agg: mean}
+          delta_format: "{:+.0%}"
+          delta_label: time to first response
+          higher_is_better: false
+    bottom:
+      type: text
+      size: 1
+      text: "Change a CSV and rebuild: **every card, chart and table in this deck updates**."
+      align: center
+      valign: middle
+      font_size: 20
+      color: muted
+
+  # ------------------------------------------------------------------ hero number + column of cards
+  - title: Monthly revenue is up 52% since January
+    source: monthly_sales.csv
     left:
+      size: 1.5
+      type: kpis
+      items:
+        - label: December revenue vs. January
+          value: {source: monthly, column: revenue, agg: growth}
+          format: "{:+.0%}"
+          value_size: 150
+          delta: "+$94,400"
+          delta_label: added to the monthly run-rate
+    right:
+      stack:
+        - type: kpis
+          items:
+            - label: FY26 revenue
+              value: {source: monthly, column: revenue, agg: sum}
+              format: "${:,.0f}"
+              delta: "+8.9%"
+              delta_label: vs. annual target
+        - type: kpis
+          items:
+            - label: Orders
+              value: {source: monthly, column: orders, agg: sum}
+              format: "{:,}"
+              delta: {source: monthly, column: orders, agg: growth}
+              delta_format: "{:+.0%}"
+              delta_label: Jan → Dec
+        - type: kpis
+          items:
+            - label: Weakest month
+              value: {source: monthly, column: revenue, agg: min}
+              format: "${:,.0f}"
+              delta: "-1.9%"
+              delta_label: "Feb: the only miss vs. target"
+
+  # ------------------------------------------------------------------ the trend behind the number
+  - title: Revenue beat target in 11 of 12 months, and sped up into Q4
+    source: monthly_sales.csv
+    left:
+      size: 2.1
       type: chart
-      kind: area
-      size: 2
-      title: Revenue vs. target
+      kind: line
       data: monthly
       x: month
       y: [revenue, target]
+      series_names: {revenue: Revenue, target: Target}
       number_format: "$#,##0"
       axis_format: '$#,##0,"K"'
       legend: top
     right:
       type: insights
       style: callout
-      heading: Signal
+      heading: What changed
       items:
-        - Revenue cleared target in **11 of 12** months
-        - December alone closed at **$276K**, the year's peak
-        - Growth came from **more campaigns**, not bigger average spend
+        - "Each quarter beat the last: **$557K → $630K → $682K → $778K**"
+        - "Q4 grew **14%** on Q3, almost double Q3's **8%** gain on Q2"
+        - "Second-half revenue was **23% higher** than the first half"
+        - "February was the only miss, **$3.5K** short"
 
-  # ------------------------------------------------------------------ 3. section divider
+  # ================================================================== chapter 2
   - type: section
-    title: Regional & product performance
+    title: "02  Product & regions"
+    subtitle: Where the growth came from
 
-  # ------------------------------------------------------------------ 4. three columns: stacked_bar, pie, filtered table
-  - title: Pro is gaining share everywhere, fastest in the West
+  # ------------------------------------------------------------------ small multiples, one per region
+  - title: West is the biggest region, but North is growing fastest
+    subtitle: Quarterly revenue by product; growth figures are Q1 → Q4
+    source: sales_by_region.csv
+    gap: 0.4
+    regions:
+      left:
+        stack:
+          - type: kpis
+            weight: 1
+            items:
+              - label: North
+                value: {source: regional, column: revenue, agg: sum, where: {region: North}}
+                format: "${:,.0f}"
+                delta: {source: regional, column: revenue, agg: growth, where: {region: North}, group_by: quarter}
+                delta_format: "{:+.0%}"
+                delta_label: fastest growth
+          - &region_chart
+            type: chart
+            weight: 2.4
+            kind: stacked_column
+            data: regional
+            where: {region: North}
+            x: quarter
+            y: revenue
+            series_by: product
+            number_format: '$#,##0,"K"'
+            data_labels: true
+            gridlines: false
+            gap_width: 45
+            axis_max: 250000      # same scale in all three panels, so bar heights compare
+            legend: bottom
+      center:
+        stack:
+          - type: kpis
+            weight: 1
+            items:
+              - label: South
+                value: {source: regional, column: revenue, agg: sum, where: {region: South}}
+                format: "${:,.0f}"
+                delta: {source: regional, column: revenue, agg: growth, where: {region: South}, group_by: quarter}
+                delta_format: "{:+.0%}"
+          - <<: *region_chart
+            where: {region: South}
+      right:
+        stack:
+          - type: kpis
+            weight: 1
+            items:
+              - label: West
+                value: {source: regional, column: revenue, agg: sum, where: {region: West}}
+                format: "${:,.0f}"
+                delta: {source: regional, column: revenue, agg: growth, where: {region: West}, group_by: quarter}
+                delta_format: "{:+.0%}"
+                delta_label: largest region
+          - <<: *region_chart
+            where: {region: West}
+
+  # ------------------------------------------------------------------ product mix
+  - title: Pro rose from 38% to 41% of revenue, one quarter at a time
     source: sales_by_region.csv
     left:
+      size: 1.6
       type: chart
-      kind: stacked_bar
-      title: Revenue by region, split by product
+      kind: stacked_column
+      title: Revenue by quarter, all regions
       data: regional
-      group_by: [region, product]
-      x: region
+      group_by: [quarter, product]
+      x: quarter
       y: revenue
       series_by: product
       number_format: '$#,##0,"K"'
       data_labels: true
-    center:
-      type: chart
-      kind: pie
-      title: Units sold by product
-      data: regional
-      group_by: product
-      x: product
-      y: units
-      number_format: "0%"
-      show_percentage: true
-      data_labels: true
-      legend: right
+      gap_width: 40
+      legend: top
     right:
-      type: table
-      data: regional
-      where: {quarter: Q4}
-      columns: {region: Region, product: Product, revenue: Revenue, units: Units}
-      sort_by: revenue
-      descending: true
-      highlight_top: 2
-      formats: {revenue: "${:,.0f}", units: "{:,}"}
-    bottom:
-      type: insights
-      style: callout
-      size: 0.2
-      items:
-        - "**Q4 snapshot:** West Core alone outsold South's entire product line."
-
-  # ------------------------------------------------------------------ 5. list `where` + multi-column `group_by` feeding a chart
-  - title: West overtook North on the strength of Q3 and Q4
-    source: sales_by_region.csv
-    left:
-      type: chart
-      kind: line
-      size: 1.6
-      title: Quarterly revenue, West vs. North
-      data: regional
-      where: {region: [West, North]}
-      group_by: [region, quarter]
-      x: quarter
-      y: revenue
-      series_by: region
-      number_format: '$#,##0,"K"'
-      legend: bottom
-    right:
-      type: insights
-      style: numbered
-      items:
-        - West and North traded the lead through Q1 and Q2
-        - West pulled ahead from **Q3 onward** and never looked back
-        - The gap widened to over **$70K** by Q4
-
-  # ------------------------------------------------------------------ 6. section divider
-  - type: section
-    title: Campaign & channel efficiency
-
-  # ------------------------------------------------------------------ 7. doughnut + a stacked region (kpis over insights)
-  - title: Direct still funds the campaign mix, but online is catching up
-    source: channel_mix.csv, campaigns.csv
-    left:
-      type: chart
-      kind: doughnut
-      title: Channel mix
-      data: channels
-      x: channel
-      y: share
-      number_format: "0%"
-      show_percentage: true
-      data_labels: true
-      legend: right
-    right:
-      size: 1
       stack:
         - type: kpis
-          weight: 1
+          value_size: 30
           items:
-            - label: Total ad spend
-              value: {source: campaigns, column: spend, agg: sum}
+            - label: Pro revenue
+              value: {source: regional, column: revenue, agg: sum, where: {product: Pro}}
               format: "${:,.0f}"
-            - label: Total conversions
-              value: {source: campaigns, column: conversions, agg: sum}
-              format: "{:,}"
-        - type: insights
-          weight: 2
-          style: callout
+              delta: {source: regional, column: revenue, agg: growth, where: {product: Pro}, group_by: quarter}
+              delta_format: "{:+.0%}"
+              delta_label: Q1 → Q4
+        - type: kpis
+          value_size: 30
           items:
-            - Partner spend converts at a **premium price**, but online is catching up on volume
-            - Marketplace remains the smallest and least efficient channel
+            - label: Core revenue
+              value: {source: regional, column: revenue, agg: sum, where: {product: Core}}
+              format: "${:,.0f}"
+              delta: {source: regional, column: revenue, agg: growth, where: {product: Core}, group_by: quarter}
+              delta_format: "{:+.0%}"
+              delta_label: Q1 → Q4
+        - type: insights
+          weight: 1.4
+          style: callout
+          font_size: 15
+          items:
+            - "Pro earns **~$295 a unit**, almost double Core's **~$154**"
+            - "Pro revenue grew **36%** in the year; Core grew **20%**"
 
-  # ------------------------------------------------------------------ 8. scatter with series_by + ranked table
-  - title: Online campaigns deliver the best return on spend
-    source: campaigns.csv
-    notes: Holiday Blitz alone returned four times what it cost.
+  # ================================================================== chapter 3
+  - type: section
+    title: "03  Go-to-market"
+    subtitle: What we spent, and what it returned
+
+  # ------------------------------------------------------------------ ranked bars + scatter + callout
+  - title: Our three smallest campaigns returned the most per dollar
+    source: campaigns.csv  ·  ROAS = revenue ÷ spend
     left:
+      size: 1.2
+      type: chart
+      kind: bar
+      title: Return on ad spend (ROAS)
+      data: campaigns
+      x: campaign
+      y: roas
+      sort_by: roas
+      descending: true
+      number_format: '0.0"x"'
+      data_labels: true
+      gridlines: false
+      gap_width: 35
+    right:
       type: chart
       kind: scatter
-      title: Spend vs. revenue
+      title: Spend vs. revenue, by channel
       data: campaigns
       x: spend
       y: revenue
       series_by: channel
       number_format: '$#,##0,"K"'
       legend: bottom
-    right:
-      type: table
-      data: campaigns
-      columns: {campaign: Campaign, channel: Channel, spend: Spend, revenue: Revenue, conversions: Conversions}
-      sort_by: revenue
-      descending: true
-      limit: 6
-      highlight_top: 1
-      formats: {spend: "${:,.0f}", revenue: "${:,.0f}", conversions: "{:,}"}
+    bottom:
+      type: insights
+      style: callout
+      size: 0.24
+      font_size: 15
+      items:
+        - "Loyalty Upsell, Retargeting and Webinar Series cost the least (**$15–23K**) and returned **5.4–7.5x**. Trade Show returned **2.2x** on $54K."
 
-  # ------------------------------------------------------------------ 9. section divider
-  - type: section
-    title: Customer experience operations
-
-  # ------------------------------------------------------------------ 10. mean/max KPIs + a `where`-scoped growth delta
-  - title: Support got faster and happier customers noticed
-    subtitle: Six months across North, South and West
-    source: support_metrics.csv
+  # ------------------------------------------------------------------ five-region dashboard
+  - title: Online brought in half of campaign revenue on 45% of the spend
+    source: campaigns.csv, channel_mix.csv
     top:
       type: kpis
-      size: 0.26
+      size: 0.24
+      value_size: 24
       items:
-        - label: Avg. CSAT
-          value: {source: support, column: csat, agg: mean}
-          format: "{:.0%}"
-        - label: Tickets handled
-          value: {source: support, column: tickets, agg: sum}
+        - label: Campaigns
+          value: {source: campaigns, column: campaign, agg: count}
+        - label: Ad spend
+          value: {source: campaigns, column: spend, agg: sum}
+          format: "${:,.0f}"
+        - label: Campaign revenue
+          value: {source: campaigns, column: revenue, agg: sum}
+          format: "${:,.0f}"
+        - label: Conversions
+          value: {source: campaigns, column: conversions, agg: sum}
           format: "{:,}"
-        - label: Peak monthly volume
-          value: {source: support, column: tickets, agg: max}
-          format: "{:,}"
-        - label: Avg. first response
-          value: {source: support, column: first_response_hours, agg: mean}
-          format: "{:.1f}h"
-          delta: {source: support, column: first_response_hours, agg: growth, where: {region: West}}
-          delta_format: "{:+.0%}"
-          delta_label: West, Jan → Jun
-          higher_is_better: false
+        - label: Avg. ROAS
+          value: {source: campaigns, column: roas, agg: mean}
+          format: "{:.1f}x"
+    left:
+      size: 0.9
+      type: chart
+      kind: doughnut
+      title: Share of all sales, by channel
+      data: channels
+      x: channel
+      y: share
+      number_format: "0%"
+      data_labels: true
+      legend: bottom
+    center:
+      size: 1.1
+      type: chart
+      kind: column
+      title: Campaign spend vs. revenue
+      data: campaigns
+      group_by: channel
+      x: channel
+      y: [spend, revenue]
+      series_names: {spend: Spend, revenue: Revenue}
+      sort_by: revenue
+      descending: true
+      number_format: '$#,##0,"K"'
+      gap_width: 50
+      legend: bottom
+    right:
+      size: 1.2
+      type: table
+      data: campaigns
+      group_by: channel
+      columns: {channel: Channel, spend: Spend, revenue: Revenue, conversions: Conv.}
+      sort_by: revenue
+      descending: true
+      highlight_top: 1
+      font_size: 12
+      formats: {spend: "${:,.0f}", revenue: "${:,.0f}", conversions: "{:,}"}
+    bottom:
+      type: insights
+      style: callout
+      size: 0.2
+      font_size: 14
+      items:
+        - "Online returned **$4.25** for every dollar, the best of any channel. Marketplace returned **$2.54**."
+
+  # ------------------------------------------------------------------ funnel from inline data
+  - title: Only 4 in 10 leads start a trial, the biggest fixable leak
+    subtitle: FY26 acquisition funnel
+    source: web analytics and CRM (inline data in this YAML)
+    left:
+      size: 2
+      type: chart
+      kind: bar
+      title: From lead to customer
+      data: funnel
+      where: {stage: [Leads, Trials started, Opportunities, Customers]}
+      x: stage
+      y: count
+      series_names: {count: People}
+      number_format: "#,##0"
+      data_labels: true
+      gridlines: false
+      gap_width: 20
+    right:
+      stack:
+        - type: kpis
+          value_size: 30
+          items:
+            - label: Site visitors (top of funnel)
+              value: {source: funnel, column: count, agg: first}
+              format: "{:,}"
+              delta: 9.4%
+              delta_label: became leads
+        - type: kpis
+          value_size: 30
+          items:
+            - label: Lead → trial
+              value: 39%
+              delta: "-61%"
+              delta_label: of leads lost here
+        - type: kpis
+          value_size: 30
+          items:
+            - label: New customers
+              value: {source: funnel, column: count, agg: last}
+              format: "{:,}"
+              delta: 62%
+              delta_label: of opportunities closed
+
+  # ================================================================== chapter 4
+  - type: section
+    title: "04  Customer experience"
+    subtitle: Faster answers, happier customers
+
+  # ------------------------------------------------------------------ before → after
+  - title: In six months, support got faster and customers noticed
+    subtitle: All regions combined, January vs. June
+    source: support_metrics.csv
+    left:
+      stack:
+        - type: kpis
+          value_size: 32
+          items:
+            - label: January  ·  CSAT
+              value: {source: support, column: csat, agg: mean, where: {month: Jan}}
+              format: "{:.0%}"
+        - type: kpis
+          value_size: 32
+          items:
+            - label: January  ·  hours to first response
+              value: {source: support, column: first_response_hours, agg: mean, where: {month: Jan}}
+              format: "{:.1f}h"
+        - type: kpis
+          value_size: 32
+          items:
+            - label: January  ·  escalations
+              value: {source: support, column: escalations, agg: sum, where: {month: Jan}}
+    center:
+      size: 0.3
+      type: text
+      text: →
+      align: center
+      valign: middle
+      font_size: 96
+      bold: true
+      color: accent
+    right:
+      stack:
+        - type: kpis
+          value_size: 32
+          items:
+            - label: June  ·  CSAT
+              value: {source: support, column: csat, agg: mean, where: {month: Jun}}
+              format: "{:.0%}"
+              delta: "+5 pts"
+        - type: kpis
+          value_size: 32
+          items:
+            - label: June  ·  hours to first response
+              value: {source: support, column: first_response_hours, agg: mean, where: {month: Jun}}
+              format: "{:.1f}h"
+              delta: "-32%"
+              higher_is_better: false
+        - type: kpis
+          value_size: 32
+          items:
+            - label: June  ·  escalations
+              value: {source: support, column: escalations, agg: sum, where: {month: Jun}}
+              delta: "-47%"
+              higher_is_better: false
+    bottom:
+      type: insights
+      style: callout
+      size: 0.19
+      font_size: 16
+      items:
+        - "Ticket volume **rose 3%** over the same months: the team got better, not less busy."
+
+  # ------------------------------------------------------------------ the mechanism, by region
+  - title: Every region got faster, and escalations nearly halved
+    source: support_metrics.csv
     left:
       type: chart
       kind: line
-      size: 1.6
-      title: CSAT by region
+      title: Hours to first response
       data: support
       x: month
-      y: csat
+      y: first_response_hours
       series_by: region
-      number_format: "0%"
-      legend: top
-    right:
-      type: insights
-      style: callout
-      heading: Why it matters
-      items:
-        - Every region's CSAT **climbed** each month, no exceptions
-        - West started fastest and is now the **CSAT leader**
-        - Faster responses tracked directly with happier customers
-
-  # ------------------------------------------------------------------ 11. a three-item stack (kpis + text + insights) + ascending sort
-  - title: West's playbook is the one worth copying
-    subtitle: The left region stacks three different components
-    left:
-      size: 1
-      stack:
-        - type: kpis
-          weight: 1
-          items:
-            - label: Fastest to respond
-              value: West
-              value_size: 22
-        - type: text
-          weight: 1
-          text: West cross-trained agents on billing tickets in Q1, which is when its lead over North and South opened up.
-          font_size: 13
-        - type: insights
-          weight: 1
-          items:
-            - Escalations fell fastest in West, down **45%** since January
+      number_format: '0.0"h"'
+      legend: bottom
     right:
       type: chart
-      kind: bar
-      size: 2
-      title: Avg. first response time by region (lower is better)
+      kind: stacked_column
+      title: Escalations per month
       data: support
-      group_by: region
-      agg: mean
-      x: region
-      y: first_response_hours
-      sort_by: first_response_hours
-      descending: false
-      number_format: '0.0"h"'
+      x: month
+      y: escalations
+      series_by: region
+      number_format: "0"
       data_labels: true
       gridlines: false
-
-  # ------------------------------------------------------------------ 12. inline data: pie + stacked_bar, no CSV needed
-  - title: Inline data works too — a breakdown that never touched a CSV
-    left:
-      type: chart
-      kind: pie
-      title: Ticket reasons
-      data:
-        categories: [Billing, Technical, Onboarding, Other]
-        series:
-          Share: [0.35, 0.30, 0.20, 0.15]
-      number_format: "0%"
-      show_percentage: true
-      data_labels: true
-      legend: right
-    right:
-      type: chart
-      kind: stacked_bar
-      title: Where the team's time goes
-      data:
-        categories: [Support, Success, Ops]
-        series:
-          Tickets: [420, 260, 180]
-          Follow-ups: [140, 210, 90]
-          Escalations: [30, 45, 70]
-      number_format: "#,##0"
-      data_labels: true
+      gap_width: 45
       legend: bottom
 
-  # ------------------------------------------------------------------ 13. full-bleed `text` component
-  - title: The story in one line
+  # ------------------------------------------------------------------ scorecard grid (YAML anchors keep it short)
+  - title: "Regional scorecard: West leads on satisfaction and speed"
+    subtitle: January–June averages and totals; changes are January → June
+    source: support_metrics.csv
     full:
-      type: text
-      text: CSAT is up **across every region** while response times **fell** — the operating model is working.
-      align: center
-      valign: middle
-      font_size: 28
-      bold: true
-      color: primary
+      stack:
+        - type: kpis
+          value_size: 28
+          items:
+            - {label: Region, value: North, value_size: 24}
+            - {label: Avg. CSAT, value: {source: support, column: csat, agg: mean, where: {region: North}}, format: "{:.1%}"}
+            - label: Avg. first response
+              value: {source: support, column: first_response_hours, agg: mean, where: {region: North}}
+              format: "{:.1f}h"
+              delta: {source: support, column: first_response_hours, agg: growth, where: {region: North}}
+              <<: &lower_better {delta_format: "{:+.0%}", higher_is_better: false}
+            - label: Escalations
+              value: {source: support, column: escalations, agg: sum, where: {region: North}}
+              delta: {source: support, column: escalations, agg: growth, where: {region: North}}
+              <<: *lower_better
+            - {label: Tickets, value: {source: support, column: tickets, agg: sum, where: {region: North}}, format: "{:,}"}
+        - type: kpis
+          value_size: 28
+          items:
+            - {label: Region, value: South, value_size: 24}
+            - {label: Avg. CSAT, value: {source: support, column: csat, agg: mean, where: {region: South}}, format: "{:.1%}"}
+            - label: Avg. first response
+              value: {source: support, column: first_response_hours, agg: mean, where: {region: South}}
+              format: "{:.1f}h"
+              delta: {source: support, column: first_response_hours, agg: growth, where: {region: South}}
+              <<: *lower_better
+            - label: Escalations
+              value: {source: support, column: escalations, agg: sum, where: {region: South}}
+              delta: {source: support, column: escalations, agg: growth, where: {region: South}}
+              <<: *lower_better
+            - {label: Tickets, value: {source: support, column: tickets, agg: sum, where: {region: South}}, format: "{:,}"}
+        - type: kpis
+          value_size: 28
+          items:
+            - {label: Region, value: "West  ★", value_size: 24}
+            - {label: Avg. CSAT, value: {source: support, column: csat, agg: mean, where: {region: West}}, format: "{:.1%}"}
+            - label: Avg. first response
+              value: {source: support, column: first_response_hours, agg: mean, where: {region: West}}
+              format: "{:.1f}h"
+              delta: {source: support, column: first_response_hours, agg: growth, where: {region: West}}
+              <<: *lower_better
+            - label: Escalations
+              value: {source: support, column: escalations, agg: sum, where: {region: West}}
+              delta: {source: support, column: escalations, agg: growth, where: {region: West}}
+              <<: *lower_better
+            - {label: Tickets, value: {source: support, column: tickets, agg: sum, where: {region: West}}, format: "{:,}"}
 
-  # ------------------------------------------------------------------ 14. closing
-  - title: Next steps
+  # ================================================================== close
+  - title: "FY27: three bets, sequenced by quarter"
+    top:
+      type: kpis
+      size: 0.36
+      value_size: 20
+      items:
+        - {label: "Q1  ·  Jan–Mar", value: Move trade-show budget to retargeting}
+        - {label: "Q2  ·  Apr–Jun", value: Launch a Pro trial for Core customers}
+        - {label: "Q3  ·  Jul–Sep", value: Roll West's support model out to North}
+        - {label: "Q4  ·  Oct–Dec", value: Reset FY28 targets from Q4 run-rate}
+    left:
+      type: insights
+      style: callout
+      heading: Fund what works
+      font_size: 15
+      items:
+        - "Retargeting returns **5.7x**; Trade Show returns **2.2x**"
+        - "Fund the small campaigns before the big launches"
     center:
       type: insights
       style: callout
-      font_size: 22
-      heading: Recommendations
+      heading: Sell up to Pro
+      font_size: 15
       items:
-        - Shift **15%** of trade-show budget into online retargeting
-        - Roll West's response-time playbook out to North and South
-        - Re-baseline FY27 targets off the Q4 revenue run-rate and the improving CSAT trend
+        - "Pro earns **~2x** Core's revenue per unit"
+        - "Fix the lead → trial step first: **61%** of leads drop out there"
+    right:
+      type: insights
+      style: callout
+      heading: Serve like West
+      font_size: 15
+      items:
+        - "West leads on CSAT at **92.5%**, with the fastest responses"
+        - "Copy West's approach in North, the busiest region"
+
+  - type: closing
+    title: Growth that compounds
+    subtitle: Questions & discussion
+
+  # ------------------------------------------------------------------ appendix, left out of the build
+  - title: "Appendix: every campaign"
+    skip: true        # set to false to include it
+    full:
+      type: table
+      data: campaigns
+      columns: {campaign: Campaign, channel: Channel, spend: Spend, revenue: Revenue, conversions: Conversions, roas: ROAS}
+      sort_by: revenue
+      descending: true
+      formats: {spend: "${:,.0f}", revenue: "${:,.0f}", conversions: "{:,}", roas: "{:.1f}x"}

@@ -109,8 +109,12 @@ def pivot(rows: Rows, x: str, y: str, series_by: str) -> tuple[list, dict[str, l
 
 
 def metric(rows: Rows, spec: dict):
-    """Single number for KPI cards: {source, column, agg, where, ...}."""
-    rows = query(rows, spec)
+    """Single number for KPI cards: {source, column, agg, where, ...}.
+
+    `agg` is the final aggregation; a `group_by` step uses `group_agg` (default sum),
+    so e.g. `group_by: quarter, agg: growth` means quarterly totals, last vs first.
+    """
+    rows = query(rows, {**spec, "agg": spec.get("group_agg", "sum")})
     col = spec["column"]
     check_columns(rows, [col], spec["source"])
     values = [r[col] for r in rows]

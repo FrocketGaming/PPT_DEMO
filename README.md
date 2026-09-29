@@ -6,6 +6,7 @@ Generic code builds the deck; a YAML file decides what goes on each slide and wh
 uv sync
 uv run deckgen configs/demo.yaml            # -> out/demo.pptx
 uv run deckgen configs/demo.yaml -o my.pptx
+uv run deckgen configs/demo_advanced.yaml   # a full business review: dashboards, scorecards, small multiples
 uv run deckgen configs/demo_branded.yaml    # built on a brand template (see below)
 uv run deckgen layouts "Brand Template"     # list a template's layouts and placeholders
 ```
@@ -280,10 +281,13 @@ Each item takes:
 
 A computed metric is `{source, column, agg}`, and it also accepts the
 [query keys](#data-queries). `agg` is one of `sum` (default), `mean`, `count`, `min`,
-`max`, `first`, `last`, or `growth` (last vs first, as a fraction).
+`max`, `first`, `last`, or `growth` (last vs first, as a fraction). With `group_by`, rows
+are first combined per group using `group_agg` (default `sum`), then `agg` is applied.
 
 ```yaml
 value: {source: monthly, column: revenue, agg: sum}
+# quarterly totals for one product, Q4 vs Q1:
+delta: {source: regional, column: revenue, where: {product: Pro}, group_by: quarter, agg: growth}
 ```
 
 **`chart`**: a native, editable chart.
@@ -305,6 +309,7 @@ value: {source: monthly, column: revenue, agg: sum}
 | `show_percentage` | `false` | Pie and doughnut labels show percentages |
 | `gridlines` | `true` | Horizontal gridlines |
 | `gap_width` | `60` | Space between bars, as a % of bar width |
+| `axis_min`, `axis_max` | automatic | Fix the value axis range, e.g. so side-by-side charts share a scale |
 | `font_size` | `11` | Points |
 
 Charts also accept the [query keys](#data-queries).
