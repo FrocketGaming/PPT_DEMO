@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import copy
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR
-from pptx.util import Emu, Inches
+from pptx.util import Emu, Inches, Pt
 
 from . import components
 from .components import Context, add_rich_text, render
@@ -122,18 +123,36 @@ def _plain_content_slide(prs, slide_cfg: dict, ctx: Context, defaults: dict, num
 
 # --------------------------------------------------------------------------- template look
 
-def _fill_text(placeholder, value, theme: Theme) -> None:
-    """Writes text into a placeholder, keeping the template's fonts, sizes and bullets."""
+TEXT_STYLE_KEYS = {"text", "font_size", "bold", "italic", "color", "align"}
+
+
+def _fill_text(placeholder, value, theme: Theme, style: dict | None = None) -> None:
+    """Writes text into a placeholder, keeping the template's fonts, sizes and bullets.
+
+    `style` overrides only what it sets: font_size, bold, italic, color, align.
+    """
+    style = style or {}
     lines = value if isinstance(value, list) else str(value).split("\n")
     tf = placeholder.text_frame
     tf.clear()
     for i, line in enumerate(lines):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         add_rich_text(p, line, theme, size=None, color=None)
+        if "align" in style:
+            p.alignment = components.ALIGN[style["align"]]
+        for run in p.runs:
+            if "font_size" in style:
+                run.font.size = Pt(style["font_size"])
+            if "bold" in style:
+                run.font.bold = style["bold"]
+            if "italic" in style:
+                run.font.italic = style["italic"]
+            if "color" in style:
+                run.font.color.rgb = theme.rgb(style["color"])
 
 
 def _fill_placeholders(slide, fills: dict, ctx: Context, defaults: dict) -> None:
-    """`placeholders: {idx: text | [lines] | component}` targets the layout's own boxes."""
+    """`placeholders: {idx: text | [lines] | {text, font_size, ...} | component}`."""
     by_idx = {ph.placeholder_format.idx: ph for ph in slide.placeholders}
     for idx, value in fills.items():
         if (ph := by_idx.get(int(idx))) is None:
@@ -141,6 +160,14 @@ def _fill_placeholders(slide, fills: dict, ctx: Context, defaults: dict) -> None
                              f"available: {sorted(by_idx)}")
         if not isinstance(value, dict):
             _fill_text(ph, value, ctx.theme)
+            continue
+        if "type" not in value:  # styled text: {text: ..., font_size: 14, ...}
+            if unknown := sorted(set(value) - TEXT_STYLE_KEYS):
+                raise ValueError(f"placeholder {idx}: unknown key(s) {unknown}; styled text takes "
+                                 f"{sorted(TEXT_STYLE_KEYS)} (or give a component `type`)")
+            if "text" not in value:
+                raise ValueError(f"placeholder {idx}: styled text needs a `text` key")
+            _fill_text(ph, value["text"], ctx.theme, value)
             continue
         spec = _merge_defaults(value, defaults)
         if spec.get("type") == "image" and hasattr(ph, "insert_picture"):
@@ -222,8 +249,13 @@ def build(config_path: str | Path, output: str | Path | None = None) -> Path:
 
     ctx = Context(theme=theme, data=load_sources(cfg.get("data", {}), base_dir), base_dir=base_dir)
     defaults = cfg.get("defaults", {})
-    prs.core_properties.title = deck.get("title", "")
-    prs.core_properties.author = deck.get("author", "")
+    # set every identity field so nothing leaks through from the base/template file
+    props, now = prs.core_properties, datetime.now(timezone.utc).replace(tzinfo=None)
+    props.title = deck.get("title", "")
+    props.author = props.last_modified_by = deck.get("author", "")
+    props.created = props.modified = now
+    props.revision = 1
+    props.subject = props.keywords = props.comments = props.category = ""
 
     section = None
     for i, slide_cfg in enumerate(cfg.get("slides", []), start=1):

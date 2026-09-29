@@ -104,6 +104,16 @@ placeholder's position:
     27: {type: chart, kind: column, data: monthly, x: month, y: revenue}
 ```
 
+Placeholder numbers come from `deckgen layouts "<name>"`. Each layout has its own set.
+Plain text keeps the template's styling. To override only some of it, use the styled form:
+
+```yaml
+    25: {text: "Revenue beat target in **11 of 12** months", font_size: 20}
+    26:
+      text: [First point, Second point]
+      font_size: 14         # also: bold, italic, color (theme name or hex), align
+```
+
 Slide types with a template: `title`, `section`, `content`, `closing`. On content
 slides, the `tag` role defaults to the most recent section title.
 
