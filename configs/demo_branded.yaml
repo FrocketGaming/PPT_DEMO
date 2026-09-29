@@ -1,0 +1,219 @@
+# Branded demo: same slides as demo.yaml, built on templates/Brand Template.pptx.
+# Only the `deck.template` line differs; layouts, fonts and colours come from the template.
+# Regions:   left | center | right | top | bottom | full
+# Components (the `type:` of a region): insights | text | kpis | chart | table | image
+# Build:     uv run deckgen configs/demo_branded.yaml
+
+deck:
+  title: FY2026 Commercial Review
+  author: Analytics Team
+  template: Brand Template   # a file in templates/ (.pptx or .potx); profile: templates/Brand Template.yaml
+
+# Named data sources. Paths are relative to this file.
+data:
+  monthly: ../data/monthly_sales.csv
+  regional: ../data/sales_by_region.csv
+  channels: ../data/channel_mix.csv
+  campaigns: ../data/campaigns.csv
+
+# Defaults applied to every component of that type (a slide can still override).
+defaults:
+  chart:
+    font_size: 11
+  insights:
+    font_size: 16
+
+slides:
+  # ------------------------------------------------------------------ 1. title
+  - type: title
+    title: FY2026 Commercial Review
+    subtitle: Revenue, regions, channels and campaign performance
+
+  # ------------------------------------------------------------------ 2. KPIs on top, chart + insights below
+  - title: Revenue beat target in 11 of 12 months
+    subtitle: Full-year performance at a glance
+    source: monthly_sales.csv
+    top:
+      type: kpis
+      size: 0.28               # top band = 28% of content height
+      items:
+        - label: Total revenue
+          value: {source: monthly, column: revenue, agg: sum}
+          format: "${:,.0f}"
+        - label: Total orders
+          value: {source: monthly, column: orders, agg: sum}
+          format: "{:,}"
+        - label: Revenue growth Jan → Dec
+          value: {source: monthly, column: revenue, agg: growth}
+          format: "{:.0%}"
+          delta: "+6 pts"
+          delta_label: vs. plan
+        - label: Avg. order value
+          value: 187.40
+          format: "${:,.2f}"
+          delta: "-2.1%"
+          delta_label: vs. FY25
+    left:
+      type: chart
+      kind: line
+      size: 2                  # left column is twice as wide as right
+      data: monthly
+      x: month
+      y: [revenue, target]
+      number_format: "$#,##0"
+      axis_format: '$#,##0,"K"'
+    right:
+      type: insights
+      heading: What drove it
+      items:
+        - Revenue ran **above target** every month except February
+        - Q4 accelerated sharply — December alone was **$276K**
+        - Order volume tracked revenue, so growth was **volume-led**, not price
+
+  # ------------------------------------------------------------------ 3. insights left, visual right
+  - title: West leads every quarter; Pro is growing fastest
+    source: sales_by_region.csv
+    notes: Speaker notes come from the `notes` key.
+    left:
+      type: insights
+      style: numbered
+      items:
+        - West is the largest region at **$875K** for the year
+        - Pro revenue grew **36%** from Q1 to Q4 across regions
+        - South remains smallest but is growing steadily
+    right:
+      type: chart
+      kind: stacked_column
+      size: 1.6
+      data: regional
+      x: quarter
+      y: revenue
+      series_by: region        # long -> wide pivot: one series per region
+      number_format: '$#,##0,"K"'
+      data_labels: true
+
+  # ------------------------------------------------------------------ 4. three columns + callout banner at bottom
+  - title: Where revenue comes from
+    source: sales_by_region.csv, channel_mix.csv
+    left:
+      type: chart
+      kind: bar
+      title: Revenue by region
+      data: regional
+      group_by: region         # aggregate transactions before charting
+      x: region
+      y: revenue
+      sort_by: revenue
+      descending: true
+      number_format: '$#,##0,"K"'
+      data_labels: true
+      gridlines: false
+    center:
+      type: chart
+      kind: doughnut
+      title: Channel mix
+      data: channels
+      x: channel
+      y: share
+      number_format: "0%"
+      data_labels: true
+    right:
+      type: chart
+      kind: column
+      title: Units by product
+      data: regional
+      group_by: product
+      x: product
+      y: units
+      number_format: "#,##0"
+      data_labels: true
+    bottom:
+      type: insights
+      style: callout
+      size: 0.22
+      items:
+        - "**Takeaway:** Direct is still 42% of revenue, but partner and online channels together now exceed it."
+
+  # ------------------------------------------------------------------ 5. section divider
+  - type: section
+    title: Campaign performance
+
+  # ------------------------------------------------------------------ 6. visual left, table right
+  - title: Online campaigns deliver the best return on spend
+    source: campaigns.csv
+    left:
+      type: chart
+      kind: scatter
+      title: Spend vs. revenue
+      data: campaigns
+      x: spend
+      y: revenue
+      series_by: channel
+      number_format: '$#,##0,"K"'
+      legend: bottom
+    right:
+      type: table
+      data: campaigns
+      columns: {campaign: Campaign, channel: Channel, spend: Spend, revenue: Revenue}
+      sort_by: revenue
+      descending: true
+      limit: 6
+      highlight_top: 1
+      formats: {spend: "${:,.0f}", revenue: "${:,.0f}"}
+
+  # ------------------------------------------------------------------ 7. stacked components in one region + full-height visual
+  - title: Holiday Blitz drove the most conversions
+    subtitle: The left region stacks a KPI card on top of insights
+    left:
+      size: 1
+      stack:
+        - type: kpis
+          weight: 1
+          items:
+            - label: Top campaign by conversions
+              value: Holiday Blitz
+              value_size: 22
+        - type: insights
+          weight: 2
+          items:
+            - Holiday Blitz returned **4.0x** spend
+            - Trade Show was the weakest at **2.2x**
+    right:
+      type: chart
+      kind: bar
+      size: 2
+      data: campaigns
+      x: campaign
+      y: conversions
+      sort_by: conversions
+      descending: true
+      number_format: "#,##0"
+      data_labels: true
+      gridlines: false
+
+  # ------------------------------------------------------------------ 8. inline data + full-width
+  - title: Inline data works too — no CSV needed
+    full:
+      type: chart
+      kind: area
+      data:
+        categories: [FY22, FY23, FY24, FY25, FY26]
+        series:
+          Revenue ($M): [1.6, 1.9, 2.1, 2.3, 2.6]
+      number_format: "0.0"
+      data_labels: true
+
+  # ------------------------------------------------------------------ 9. closing
+  - title: Next steps
+    center:
+      type: insights
+      style: callout
+      font_size: 22
+      heading: Recommendations
+      items:
+        - Shift **15%** of trade-show budget into online retargeting
+        - Expand the Pro tier push into the South region
+        - Re-baseline FY27 targets off the Q4 run-rate
+
+  - type: closing
+    title: Thank you

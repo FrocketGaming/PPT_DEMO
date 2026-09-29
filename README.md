@@ -24,7 +24,7 @@ defaults:                      # optional per-component-type defaults
   chart: {font_size: 11}
 
 slides:
-  - type: title                # title | section | content (default)
+  - type: title                # title | section | content (default) | closing
     title: ...
     subtitle: ...
 
@@ -64,6 +64,47 @@ To put several components in one region, use `stack: [...]` (each item can have 
 
 `chart` and `table` also accept the query keys `where`, `group_by` + `agg`, `sort_by` + `descending`, and `limit`.
 `data:` can be inline instead of a source name: `{categories: [...], series: {Name: [...]}}`.
+
+## Brand templates
+
+Put a `.pptx` or `.potx` in `templates/` and name it in the config:
+
+```yaml
+deck:
+  template: Brand Template        # -> templates/Brand Template.pptx (or .potx)
+```
+
+The deck is then built on that file's layouts, so logos, backgrounds, footer bars,
+fonts and colours come from the template. The template's sample slides are removed.
+Chart and table colours are read from the template's theme, and `deck.theme` can
+override them. Regions (`left`, `right`, ...) are laid out inside the template's
+content area. See `configs/demo_branded.yaml`, which has the same slides as `demo.yaml`
+plus the template line.
+
+**Profile.** `templates/<name>.yaml`, next to the template, says which layout each slide
+type uses and which placeholder is the title, subtitle, date or tag. It also sets the
+content area. Without a profile, deckgen guesses from layout names such as "Title Only".
+To see a template's layouts and placeholder numbers when writing a profile:
+
+```bash
+uv run deckgen layouts "Brand Template"
+```
+
+**Per-slide layouts.** Any slide can use another layout and fill its placeholders by
+number. Text keeps the template's fonts and bullet styles. A component is drawn in the
+placeholder's position:
+
+```yaml
+- title: Revenue beat target
+  layout: Diagram/Chart with Text
+  placeholders:
+    25: "Revenue beat target in **11 of 12** months"
+    26: [First point, Second point]
+    27: {type: chart, kind: column, data: monthly, x: month, y: revenue}
+```
+
+Slide types with a template: `title`, `section`, `content`, `closing`. On content
+slides, the `tag` role defaults to the most recent section title.
 
 ## Extending
 

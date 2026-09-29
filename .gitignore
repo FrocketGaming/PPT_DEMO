@@ -2,3 +2,9 @@
 __pycache__/
 *.pyc
 ~$*.pptx
+
+# Brand templates are private: keep them out of the repo
+templates/*
+!templates/.gitkeep
+# Built from a brand template, so it embeds the template's masters and logos
+out/demo_branded.pptx

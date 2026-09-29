@@ -62,19 +62,28 @@ def _emu(box: Box) -> tuple[Emu, Emu, Emu, Emu]:
     return Inches(box.x), Inches(box.y), Inches(box.w), Inches(box.h)
 
 
-def add_rich_text(paragraph, text: str, theme: Theme, size: float, color: str = "text",
-                  bold: bool = False) -> None:
-    """Adds text to a paragraph; **double asterisks** become bold accent-colored runs."""
+def add_rich_text(paragraph, text: str, theme: Theme, size: float | None,
+                  color: str | None = "text", bold: bool = False) -> None:
+    """Adds text to a paragraph; **double asterisks** become bold accent-colored runs.
+
+    size/color None leave the run unstyled so it inherits from a template placeholder.
+    """
+    inherit = size is None
     for i, chunk in enumerate(re.split(r"\*\*(.+?)\*\*", str(text))):
         if not chunk:
             continue
         run = paragraph.add_run()
         run.text = chunk
         emphasized = i % 2 == 1
-        run.font.name = theme.font
-        run.font.size = Pt(size)
-        run.font.bold = bold or emphasized
-        run.font.color.rgb = theme.rgb("accent" if emphasized else color)
+        if not inherit:
+            run.font.name = theme.font
+            run.font.size = Pt(size)
+        if bold or emphasized:
+            run.font.bold = True
+        if emphasized:
+            run.font.color.rgb = theme.rgb("accent")
+        elif color is not None:
+            run.font.color.rgb = theme.rgb(color)
 
 
 def _textbox(slide, box: Box, anchor=MSO_ANCHOR.TOP, margin: float = 0.05):
