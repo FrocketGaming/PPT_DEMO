@@ -7,9 +7,12 @@ uv sync
 uv run deckgen configs/demo.yaml            # -> out/demo.pptx
 uv run deckgen configs/demo.yaml -o my.pptx
 uv run deckgen configs/demo_branded.yaml    # built on a brand template (see below)
+uv run deckgen layouts "Brand Template"     # list a template's layouts and placeholders
 ```
 
 Charts are native PowerPoint charts, so they stay editable (right-click → Edit Data).
+The YAML is the source of truth. Each build writes a fresh `.pptx`, so edits made in
+PowerPoint are overwritten on the next build.
 
 ## Config shape
 
@@ -37,6 +40,8 @@ slides:
     right: {type: chart, kind: line, data: monthly, x: month, y: [revenue, target]}
 ```
 
+Every option is listed in the [Reference](#reference) section below.
+
 ## Regions (where things go)
 
 ```
@@ -52,20 +57,6 @@ slides:
 Use any combination, or `full` alone. `left: {size: 1}`, `right: {size: 2}` gives a 1/3–2/3 split.
 To put several components in one region, use `stack: [...]` (each item can have a `weight`).
 
-## Components (what goes there)
-
-| type       | key options |
-|------------|-------------|
-| `insights` | `items`, `heading`, `style: bullets \| numbered \| callout`, `font_size`. `**text**` is bold and in the accent color |
-| `text`     | `text`, `align`, `valign`, `font_size`, `bold`, `color` |
-| `kpis`     | `items: [{label, value, format, delta, delta_label, higher_is_better}]`. `value`/`delta` can be computed: `{source, column, agg: sum\|mean\|min\|max\|count\|first\|last\|growth}` |
-| `chart`    | `kind: column \| stacked_column \| bar \| stacked_bar \| line \| area \| pie \| doughnut \| scatter`, `data`, `x`, `y` (one or a list), `series_by` (long → wide pivot), `title`, `legend`, `data_labels`, `number_format`, `axis_format`, `gridlines` |
-| `table`    | `data`, `columns` (list or `{col: Header}`), `formats: {col: "${:,.0f}"}`, `highlight_top` |
-| `image`    | `path` |
-
-`chart` and `table` also accept the query keys `where`, `group_by` + `agg`, `sort_by` + `descending`, and `limit`.
-`data:` can be inline instead of a source name: `{categories: [...], series: {Name: [...]}}`.
-
 ## Brand templates
 
 Put a `.pptx` or `.potx` in `templates/` and name it in the config:
@@ -75,25 +66,43 @@ deck:
   template: Brand Template        # -> templates/Brand Template.pptx (or .potx)
 ```
 
-The deck is then built on that file's layouts, so logos, backgrounds, footer bars,
-fonts and colours come from the template. The template's sample slides are removed.
-Chart and table colours are read from the template's theme, and `deck.theme` can
-override them. Regions (`left`, `right`, ...) are laid out inside the template's
-content area. See `configs/demo_branded.yaml`, which has the same slides as `demo.yaml`
-plus the template line.
+`deck.template` is what makes the deck branded. The deck is built on that file's layouts,
+so logos, backgrounds, footer bars, fonts and colours come from the template. The
+template's sample slides are removed. Chart and table colours are read from the
+template's theme, and `deck.theme` can override them. Regions (`left`, `right`, ...) are
+laid out inside the template's content area. `configs/demo_branded.yaml` has the same
+slides as `demo.yaml`, plus the template line.
 
-**Profile.** `templates/<name>.yaml`, next to the template, says which layout each slide
-type uses and which placeholder is the title, subtitle, date or tag. It also sets the
-content area. Without a profile, deckgen guesses from layout names such as "Title Only".
-To see a template's layouts and placeholder numbers when writing a profile:
+**Profile.** `templates/<name>.yaml`, next to the template, sets the default layout for
+each slide type and which placeholder holds the title, subtitle, date or tag. It also sets
+the content area (see [Template profile](#template-profile)). Without a profile, deckgen
+guesses from layout names such as "Title Only".
+
+### Finding layouts
 
 ```bash
 uv run deckgen layouts "Brand Template"
 ```
 
-**Per-slide layouts.** Any slide can use another layout and fill its placeholders by
-number. Text keeps the template's fonts and bullet styles. A component is drawn in the
-placeholder's position:
+This lists every layout and the numbered placeholders (boxes) on each one:
+
+```
+Diagram/Chart with Text
+  idx  22  body       at (0.44, 0.35) 10.49 x 1.08  Text Placeholder 7
+  idx  27  chart      at (5.09, 1.29) 7.81 x 5.39  Chart Placeholder 6
+  ...
+```
+
+The first line of each block is the name to use in `layout:`. Matching ignores case,
+extra spaces and `–` vs `-`. `idx` is the number to use in `placeholders:`, and
+`(x, y) w x h` is the box's position and size in inches. Each layout has its own numbers.
+To see what the layouts look like, open the template in PowerPoint and check
+**Home → Layout**, or **View → Slide Master** for full-size layouts. A mistyped layout
+name fails the build and lists every valid name.
+
+### Per-slide layouts
+
+A slide can use any layout in the template and fill its placeholders by number:
 
 ```yaml
 - title: Revenue beat target
@@ -104,7 +113,6 @@ placeholder's position:
     27: {type: chart, kind: column, data: monthly, x: month, y: revenue}
 ```
 
-Placeholder numbers come from `deckgen layouts "<name>"`. Each layout has its own set.
 Plain text keeps the template's styling. To override only some of it, use the styled form:
 
 ```yaml
@@ -114,8 +122,9 @@ Plain text keeps the template's styling. To override only some of it, use the st
       font_size: 14         # also: bold, italic, color (theme name or hex), align
 ```
 
-Slide types with a template: `title`, `section`, `content`, `closing`. On content
-slides, the `tag` role defaults to the most recent section title.
+Placeholders you leave empty are removed, so no "Click to add text" prompts are left
+behind. Use regions when you want deckgen to handle placement. Use placeholders when you
+want the template designer's exact layout.
 
 ### Testing against a template
 
@@ -150,6 +159,224 @@ If something is off, adjust the profile (`templates/<name>.yaml`) and rebuild:
 
 To check that auto-detection works on a new template, build against it without a profile.
 
+## Reference
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `deckgen <config.yaml>` | Build the deck to `./out/<config name>.pptx` |
+| `deckgen <config.yaml> -o <file.pptx>` | Build to a specific file |
+| `deckgen layouts "<template>"` | List a template's layouts and placeholder numbers. Takes a name in `./templates/` or a path |
+
+Run them with `uv run` in front, or activate the virtual environment first. A config
+mistake stops the build with a message naming the slide and the problem.
+
+### `deck`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `title`, `author` | `""` | Written to the file's document properties |
+| `template` | none | Brand template name (file in `templates/`, extension optional) |
+| `templates_dir` | none | Extra folder to search for templates, relative to the config |
+| `date` | current month and year | Date shown on title slides (templates with a `date` role) |
+| `theme` | built-in, or read from the template | Colour and font overrides, see below |
+
+Templates are searched for in `templates_dir`, then `templates/` next to the config, then
+`templates/` one level up, then `./templates`.
+
+`theme` keys: `font`, `primary` (titles, table headers), `accent` (highlights, `**bold**`),
+`text`, `muted` (labels, footnotes), `light` (card and callout backgrounds), `positive`
+and `negative` (KPI deltas), and `palette` (list of chart series colours). Colours are hex,
+with or without `#`.
+
+### `data`
+
+```yaml
+data:
+  monthly: ../data/monthly_sales.csv      # CSV path, relative to the config
+  targets:                                # or inline rows
+    - {region: North, target: 400000}
+    - {region: South, target: 250000}
+```
+
+Numbers in CSVs are detected automatically.
+
+### `defaults`
+
+Options applied to every component of a type, e.g. `defaults: {chart: {font_size: 11},
+table: {font_size: 11}}`. Anything set on the component itself wins.
+
+### Slides
+
+| Key | Slide types | Meaning |
+|---|---|---|
+| `type` | all | `title`, `section`, `content` (default), `closing` |
+| `title`, `subtitle` | all | Slide title and optional subtitle |
+| `left` `center` `right` `top` `bottom` `full` | content | Regions, each holding one component or a `stack` |
+| `regions` | content | Same as the region keys, grouped under one key |
+| `gap` | content | Space between regions in inches (default `0.3`) |
+| `source` | content | Footnote, shown as "Source: ..." |
+| `notes` | all | Speaker notes |
+| `skip` | all | `true` leaves the slide out of the build |
+| `font_size` | title, section, closing | Title size (built-in look only; templates use their own) |
+| `layout` | all (template only) | Use this template layout instead of the profile's default |
+| `placeholders` | all (template only) | Fill the layout's numbered boxes, see below |
+| `tag` | content (template only) | Small label, if the layout has one. Defaults to the latest section title |
+| `date` | title (template only) | Overrides `deck.date` for this slide |
+
+A region is either a component (`left: {type: chart, ...}`) or a stack:
+
+```yaml
+left:
+  size: 1                 # region size (see Regions)
+  stack:
+    - {type: kpis, weight: 1, items: [...]}       # weight = share of the region's height
+    - {type: insights, weight: 2, items: [...]}
+```
+
+### Components
+
+**`insights`**: bullet points.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | List of strings. `**text**` is bold in the accent colour |
+| `heading` | none | Bold line above the items |
+| `style` | `bullets` | `bullets`, `numbered`, or `callout` (shaded box with an accent bar) |
+| `font_size` | `16` | Item size in points; the heading is 2pt larger |
+| `spacing` | `10` | Space after each item, in points |
+
+**`text`**: free text.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `text` | | The text. A blank line starts a new paragraph |
+| `align` | `left` | `left`, `center`, `right` |
+| `valign` | `top` | `top`, `middle`, `bottom` |
+| `font_size` | `16` | Points |
+| `bold` | `false` | |
+| `color` | `text` | Theme colour name or hex |
+
+**`kpis`**: a row of metric cards.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `items` | | One card per item, see below |
+| `value_size` | `30` | Size of the big number on every card |
+
+Each item takes:
+
+| Key | Meaning |
+|---|---|
+| `label` | Small text above the value |
+| `value` | A literal (`187.4`, `"Holiday Blitz"`) or a computed metric (below) |
+| `format` | Python format for the value, e.g. `"${:,.0f}"`, `"{:.0%}"`, `"{:,}"` |
+| `delta` | Change line under the value, literal or computed. A leading `-` shows ▼, otherwise ▲ |
+| `delta_format` | Python format for the delta |
+| `delta_label` | Text after the delta, e.g. `vs. plan` |
+| `higher_is_better` | Default `true`. Set `false` to show increases in the `negative` colour |
+| `value_size` | Overrides the row's `value_size` for this card |
+
+A computed metric is `{source, column, agg}`, and it also accepts the
+[query keys](#data-queries). `agg` is one of `sum` (default), `mean`, `count`, `min`,
+`max`, `first`, `last`, or `growth` (last vs first, as a fraction).
+
+```yaml
+value: {source: monthly, column: revenue, agg: sum}
+```
+
+**`chart`**: a native, editable chart.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `kind` | `column` | `column`, `stacked_column`, `bar`, `stacked_bar`, `line`, `area`, `pie`, `doughnut`, `scatter` |
+| `data` | | Source name, or inline `{categories: [...], series: {Name: [...]}}` |
+| `x` | | Category column (the x values for `scatter`) |
+| `y` | | One value column or a list; each becomes a series |
+| `series_by` | none | Split one `y` column into a series per value of this column (long → wide). For `scatter`, it groups points into coloured series |
+| `series_names` | column names | Rename series: `{revenue: "Revenue ($)"}` |
+| `title` | none | Chart title |
+| `legend` | `bottom` for multi-series, pie and doughnut; else `none` | `bottom`, `top`, `left`, `right`, `none` |
+| `data_labels` | `false` | Show values on the chart |
+| `number_format` | `General` | Excel number format for the data, e.g. `$#,##0`, `0%`, `$#,##0,"K"` |
+| `axis_format` | `number_format` | Excel format for the value axis |
+| `label_format` | `number_format` | Excel format for the data labels |
+| `show_percentage` | `false` | Pie and doughnut labels show percentages |
+| `gridlines` | `true` | Horizontal gridlines |
+| `gap_width` | `60` | Space between bars, as a % of bar width |
+| `font_size` | `11` | Points |
+
+Charts also accept the [query keys](#data-queries).
+
+**`table`**
+
+| Key | Default | Meaning |
+|---|---|---|
+| `data` | | Source name |
+| `columns` | all | List of columns, or `{column: Header}` to rename them |
+| `formats` | none | Python format per column: `{revenue: "${:,.0f}"}` |
+| `highlight_top` | `0` | Make the first N rows bold |
+| `font_size` | `12` | Points |
+
+Tables also accept the [query keys](#data-queries). Number columns are right-aligned.
+
+**`image`**
+
+| Key | Meaning |
+|---|---|
+| `path` | Image file, relative to the config. It fills the region's height and keeps its proportions |
+
+### Data queries
+
+Charts, tables and computed KPI values accept these keys. They are applied in this order:
+
+| Key | Example | Meaning |
+|---|---|---|
+| `where` | `{region: West}` or `{region: [West, North]}` | Keep matching rows |
+| `group_by` | `region` or `[region, quarter]` | One row per group |
+| `agg` | `sum` | How `group_by` combines number columns: `sum`, `mean`, `count`, `min`, `max` |
+| `sort_by` | `revenue` | Sort rows |
+| `descending` | `true` | Sort largest first |
+| `limit` | `5` | Keep the first N rows |
+
+### Placeholders
+
+`placeholders:` maps a placeholder number (from `deckgen layouts`) to one of:
+
+| Value | Result |
+|---|---|
+| `"text"` | Text with the template's styling. `\n` starts a new line |
+| `[line, line]` | One paragraph per item, using the template's bullet style |
+| `{text: ..., font_size: 14}` | Styled text. Also `bold`, `italic`, `color`, `align` |
+| `{type: chart, ...}` (any component) | The component, drawn where the placeholder sits |
+| `{type: image, path: ...}` in a picture placeholder | The image, cropped to fill the placeholder |
+
+### Template profile
+
+`templates/<name>.yaml`:
+
+```yaml
+slides:                                  # one entry per slide type: title, section, content, closing
+  title:
+    layout: Presentation Title Cool Gray # layout name from `deckgen layouts`
+    title: 10                            # placeholder number for each role
+    subtitle: 11
+    date: 12
+  content:
+    layout: Content Slide – Title Only
+    title: 22
+    tag: 21
+content_area: [0.44, 1.6, 12.47, 5.1]   # x, y, width, height in inches for regions
+theme:                                   # optional overrides of colours read from the template
+  palette: ["1F4456", "E8542C", "448790"]
+```
+
+Roles are `title`, `subtitle`, `date` and `tag`. Without a profile, layouts are guessed
+from their names ("Title Slide", "Section Header", "Title Only", "Thank You"). The title
+is the template's title placeholder, or else the topmost wide text box. The
+content area is the space between the title and any footer bar.
+
 ## Extending
 
 Add a component type in `src/deckgen/components.py`:
@@ -171,3 +398,4 @@ Then use `type: quote` in YAML. Layout, theming, data loading and validation com
 - `template.py`: finds and opens brand templates (.pptx/.potx), reads their theme,
   maps layouts and placeholders, and removes sample slides
 - `theme.py`: colors, fonts and the chart palette
+- `cli.py`: the `deckgen` command

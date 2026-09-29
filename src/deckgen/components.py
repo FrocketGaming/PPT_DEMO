@@ -187,7 +187,8 @@ def render_kpis(slide, box: Box, spec: dict, ctx: Context) -> None:
         p = tf.paragraphs[0]
         add_rich_text(p, item.get("label", ""), theme, 12, color="muted")
         p = tf.add_paragraph()
-        add_rich_text(p, fmt(value, item.get("format")), theme, spec.get("value_size", 30),
+        add_rich_text(p, fmt(value, item.get("format")), theme,
+                      item.get("value_size", spec.get("value_size", 30)),
                       color="primary", bold=True)
         if delta is not None:
             text = fmt(delta, item.get("delta_format"))

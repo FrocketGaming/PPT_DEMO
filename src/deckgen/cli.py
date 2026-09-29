@@ -31,7 +31,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(prog="deckgen", description="Build a .pptx from a YAML config.")
     parser.add_argument("config", help="path to the deck YAML")
-    parser.add_argument("-o", "--output", help="output .pptx (default: out/<config name>.pptx)")
+    parser.add_argument("-o", "--output", help="output .pptx (default: ./out/<config name>.pptx)")
     args = parser.parse_args()
     try:
         path = build(args.config, args.output)

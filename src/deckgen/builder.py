@@ -284,7 +284,7 @@ def build(config_path: str | Path, output: str | Path | None = None) -> Path:
         if notes := slide_cfg.get("notes"):
             slide.notes_slide.notes_text_frame.text = notes
 
-    output = Path(output) if output else base_dir.parent / "out" / f"{config_path.stem}.pptx"
+    output = Path(output) if output else Path.cwd() / "out" / f"{config_path.stem}.pptx"
     output.parent.mkdir(parents=True, exist_ok=True)
     prs.save(output)
     return output
