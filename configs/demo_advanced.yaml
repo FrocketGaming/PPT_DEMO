@@ -1,0 +1,349 @@
+# Advanced demo: exercises most of what deckgen can do from one config file —
+# every chart kind but pie's cousins get a showing, every KPI aggregation
+# (sum, mean, count, min, max, growth), where/group_by/sort/limit queries
+# (including a list `where` and a multi-column `group_by`), inline data,
+# stacked regions, the `text` component, and a second data source joined
+# into the same deck as the original campaign/regional numbers.
+# Build:  uv run deckgen configs/demo_advanced.yaml
+
+deck:
+  title: FY2026 Growth & Customer Experience Review
+  author: Analytics Team
+  theme:
+    primary: "#123C69"
+    accent: "#F4A261"
+    font: Calibri
+    palette: ["123C69", "F4A261", "2A9D8F", "8ECAE6", "E76F51", "6D6875"]
+
+# Named data sources. Paths are relative to this file.
+data:
+  monthly: ../data/monthly_sales.csv
+  regional: ../data/sales_by_region.csv
+  channels: ../data/channel_mix.csv
+  campaigns: ../data/campaigns.csv
+  support: ../data/support_metrics.csv
+
+defaults:
+  chart:
+    font_size: 11
+  insights:
+    font_size: 15
+  table:
+    font_size: 12
+
+slides:
+  # ------------------------------------------------------------------ 1. title
+  - type: title
+    title: FY2026 Growth & Customer Experience Review
+    subtitle: Revenue, regions, campaigns and support — all generated from one YAML file
+
+  # ------------------------------------------------------------------ 2. KPI row: sum, count, max and growth aggs
+  - title: Revenue grew every quarter, on the back of more campaigns, not fewer
+    subtitle: Full-year performance at a glance
+    source: monthly_sales.csv, campaigns.csv
+    notes: >
+      The KPI row mixes four different aggregations off two data sources — sum, count,
+      max and growth — computed straight from the CSVs, no pre-calculated numbers in the YAML.
+    top:
+      type: kpis
+      size: 0.28
+      items:
+        - label: Total revenue
+          value: {source: monthly, column: revenue, agg: sum}
+          format: "${:,.0f}"
+        - label: Campaigns run
+          value: {source: campaigns, column: campaign, agg: count}
+          format: "{:,}"
+        - label: Best single month
+          value: {source: monthly, column: revenue, agg: max}
+          format: "${:,.0f}"
+        - label: Revenue growth Jan → Dec
+          value: {source: monthly, column: revenue, agg: growth}
+          format: "{:.0%}"
+          delta: "+6 pts"
+          delta_label: vs. plan
+    left:
+      type: chart
+      kind: area
+      size: 2
+      title: Revenue vs. target
+      data: monthly
+      x: month
+      y: [revenue, target]
+      number_format: "$#,##0"
+      axis_format: '$#,##0,"K"'
+      legend: top
+    right:
+      type: insights
+      style: callout
+      heading: Signal
+      items:
+        - Revenue cleared target in **11 of 12** months
+        - December alone closed at **$276K**, the year's peak
+        - Growth came from **more campaigns**, not bigger average spend
+
+  # ------------------------------------------------------------------ 3. section divider
+  - type: section
+    title: Regional & product performance
+
+  # ------------------------------------------------------------------ 4. three columns: stacked_bar, pie, filtered table
+  - title: Pro is gaining share everywhere, fastest in the West
+    source: sales_by_region.csv
+    left:
+      type: chart
+      kind: stacked_bar
+      title: Revenue by region, split by product
+      data: regional
+      group_by: [region, product]
+      x: region
+      y: revenue
+      series_by: product
+      number_format: '$#,##0,"K"'
+      data_labels: true
+    center:
+      type: chart
+      kind: pie
+      title: Units sold by product
+      data: regional
+      group_by: product
+      x: product
+      y: units
+      number_format: "0%"
+      show_percentage: true
+      data_labels: true
+      legend: right
+    right:
+      type: table
+      data: regional
+      where: {quarter: Q4}
+      columns: {region: Region, product: Product, revenue: Revenue, units: Units}
+      sort_by: revenue
+      descending: true
+      highlight_top: 2
+      formats: {revenue: "${:,.0f}", units: "{:,}"}
+    bottom:
+      type: insights
+      style: callout
+      size: 0.2
+      items:
+        - "**Q4 snapshot:** West Core alone outsold South's entire product line."
+
+  # ------------------------------------------------------------------ 5. list `where` + multi-column `group_by` feeding a chart
+  - title: West overtook North on the strength of Q3 and Q4
+    source: sales_by_region.csv
+    left:
+      type: chart
+      kind: line
+      size: 1.6
+      title: Quarterly revenue, West vs. North
+      data: regional
+      where: {region: [West, North]}
+      group_by: [region, quarter]
+      x: quarter
+      y: revenue
+      series_by: region
+      number_format: '$#,##0,"K"'
+      legend: bottom
+    right:
+      type: insights
+      style: numbered
+      items:
+        - West and North traded the lead through Q1 and Q2
+        - West pulled ahead from **Q3 onward** and never looked back
+        - The gap widened to over **$70K** by Q4
+
+  # ------------------------------------------------------------------ 6. section divider
+  - type: section
+    title: Campaign & channel efficiency
+
+  # ------------------------------------------------------------------ 7. doughnut + a stacked region (kpis over insights)
+  - title: Direct still funds the campaign mix, but online is catching up
+    source: channel_mix.csv, campaigns.csv
+    left:
+      type: chart
+      kind: doughnut
+      title: Channel mix
+      data: channels
+      x: channel
+      y: share
+      number_format: "0%"
+      show_percentage: true
+      data_labels: true
+      legend: right
+    right:
+      size: 1
+      stack:
+        - type: kpis
+          weight: 1
+          items:
+            - label: Total ad spend
+              value: {source: campaigns, column: spend, agg: sum}
+              format: "${:,.0f}"
+            - label: Total conversions
+              value: {source: campaigns, column: conversions, agg: sum}
+              format: "{:,}"
+        - type: insights
+          weight: 2
+          style: callout
+          items:
+            - Partner spend converts at a **premium price**, but online is catching up on volume
+            - Marketplace remains the smallest and least efficient channel
+
+  # ------------------------------------------------------------------ 8. scatter with series_by + ranked table
+  - title: Online campaigns deliver the best return on spend
+    source: campaigns.csv
+    notes: Holiday Blitz alone returned four times what it cost.
+    left:
+      type: chart
+      kind: scatter
+      title: Spend vs. revenue
+      data: campaigns
+      x: spend
+      y: revenue
+      series_by: channel
+      number_format: '$#,##0,"K"'
+      legend: bottom
+    right:
+      type: table
+      data: campaigns
+      columns: {campaign: Campaign, channel: Channel, spend: Spend, revenue: Revenue, conversions: Conversions}
+      sort_by: revenue
+      descending: true
+      limit: 6
+      highlight_top: 1
+      formats: {spend: "${:,.0f}", revenue: "${:,.0f}", conversions: "{:,}"}
+
+  # ------------------------------------------------------------------ 9. section divider
+  - type: section
+    title: Customer experience operations
+
+  # ------------------------------------------------------------------ 10. mean/max KPIs + a `where`-scoped growth delta
+  - title: Support got faster and happier customers noticed
+    subtitle: Six months across North, South and West
+    source: support_metrics.csv
+    top:
+      type: kpis
+      size: 0.26
+      items:
+        - label: Avg. CSAT
+          value: {source: support, column: csat, agg: mean}
+          format: "{:.0%}"
+        - label: Tickets handled
+          value: {source: support, column: tickets, agg: sum}
+          format: "{:,}"
+        - label: Peak monthly volume
+          value: {source: support, column: tickets, agg: max}
+          format: "{:,}"
+        - label: Avg. first response
+          value: {source: support, column: first_response_hours, agg: mean}
+          format: "{:.1f}h"
+          delta: {source: support, column: first_response_hours, agg: growth, where: {region: West}}
+          delta_format: "{:+.0%}"
+          delta_label: West, Jan → Jun
+          higher_is_better: false
+    left:
+      type: chart
+      kind: line
+      size: 1.6
+      title: CSAT by region
+      data: support
+      x: month
+      y: csat
+      series_by: region
+      number_format: "0%"
+      legend: top
+    right:
+      type: insights
+      style: callout
+      heading: Why it matters
+      items:
+        - Every region's CSAT **climbed** each month, no exceptions
+        - West started fastest and is now the **CSAT leader**
+        - Faster responses tracked directly with happier customers
+
+  # ------------------------------------------------------------------ 11. a three-item stack (kpis + text + insights) + ascending sort
+  - title: West's playbook is the one worth copying
+    subtitle: The left region stacks three different components
+    left:
+      size: 1
+      stack:
+        - type: kpis
+          weight: 1
+          items:
+            - label: Fastest to respond
+              value: West
+              value_size: 22
+        - type: text
+          weight: 1
+          text: West cross-trained agents on billing tickets in Q1, which is when its lead over North and South opened up.
+          font_size: 13
+        - type: insights
+          weight: 1
+          items:
+            - Escalations fell fastest in West, down **45%** since January
+    right:
+      type: chart
+      kind: bar
+      size: 2
+      title: Avg. first response time by region (lower is better)
+      data: support
+      group_by: region
+      agg: mean
+      x: region
+      y: first_response_hours
+      sort_by: first_response_hours
+      descending: false
+      number_format: '0.0"h"'
+      data_labels: true
+      gridlines: false
+
+  # ------------------------------------------------------------------ 12. inline data: pie + stacked_bar, no CSV needed
+  - title: Inline data works too — a breakdown that never touched a CSV
+    left:
+      type: chart
+      kind: pie
+      title: Ticket reasons
+      data:
+        categories: [Billing, Technical, Onboarding, Other]
+        series:
+          Share: [0.35, 0.30, 0.20, 0.15]
+      number_format: "0%"
+      show_percentage: true
+      data_labels: true
+      legend: right
+    right:
+      type: chart
+      kind: stacked_bar
+      title: Where the team's time goes
+      data:
+        categories: [Support, Success, Ops]
+        series:
+          Tickets: [420, 260, 180]
+          Follow-ups: [140, 210, 90]
+          Escalations: [30, 45, 70]
+      number_format: "#,##0"
+      data_labels: true
+      legend: bottom
+
+  # ------------------------------------------------------------------ 13. full-bleed `text` component
+  - title: The story in one line
+    full:
+      type: text
+      text: CSAT is up **across every region** while response times **fell** — the operating model is working.
+      align: center
+      valign: middle
+      font_size: 28
+      bold: true
+      color: primary
+
+  # ------------------------------------------------------------------ 14. closing
+  - title: Next steps
+    center:
+      type: insights
+      style: callout
+      font_size: 22
+      heading: Recommendations
+      items:
+        - Shift **15%** of trade-show budget into online retargeting
+        - Roll West's response-time playbook out to North and South
+        - Re-baseline FY27 targets off the Q4 revenue run-rate and the improving CSAT trend
