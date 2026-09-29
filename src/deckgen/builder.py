@@ -202,7 +202,11 @@ def _template_dirs(deck: dict, base_dir: Path) -> list[Path]:
 
 def build(config_path: str | Path, output: str | Path | None = None) -> Path:
     config_path = Path(config_path).resolve()
-    cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    try:
+        cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ConfigError(f"{config_path.name} is not valid YAML "
+                          f"(check indentation: slide keys must line up):\n{exc}") from exc
     base_dir = config_path.parent
     deck = cfg.get("deck", {})
 

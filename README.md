@@ -6,6 +6,7 @@ Generic code builds the deck; a YAML file decides what goes on each slide and wh
 uv sync
 uv run deckgen configs/demo.yaml            # -> out/demo.pptx
 uv run deckgen configs/demo.yaml -o my.pptx
+uv run deckgen configs/demo_branded.yaml    # built on a brand template (see below)
 ```
 
 Charts are native PowerPoint charts, so they stay editable (right-click → Edit Data).
@@ -106,6 +107,39 @@ placeholder's position:
 Slide types with a template: `title`, `section`, `content`, `closing`. On content
 slides, the `tag` role defaults to the most recent section title.
 
+### Testing against a template
+
+Templates are git-ignored, so put your own in `templates/` first. `demo_branded.yaml`
+expects `templates/Brand Template.pptx`; if your file has another name, change its
+`template:` line.
+
+```bash
+uv run deckgen configs/demo_branded.yaml
+start out/demo_branded.pptx          # Windows; `open` on macOS
+```
+
+Close the deck in PowerPoint before rebuilding, because Windows locks open files.
+
+Check in PowerPoint:
+
+- Logo, footer bar, backgrounds and fonts come from the template.
+- Titles use the template's title style, not the built-in look.
+- Slide numbers appear in the footer.
+- Charts, KPI cards and tables sit between the title and the footer, with no overlap.
+- Chart colours follow the brand palette.
+- Right-click a chart → Edit Data opens the numbers.
+
+If something is off, adjust the profile (`templates/<name>.yaml`) and rebuild:
+
+| Problem | Fix |
+|---|---|
+| Content too close to the title or footer | Change `content_area: [x, y, w, h]` (inches) |
+| Want a different title or section design | Change the `layout:` names for that slide type |
+| Chart colours wrong or in the wrong order | Set `theme: palette: [...]` |
+| Text lands in the wrong box | Check placeholder numbers with `deckgen layouts "<name>"` |
+
+To check that auto-detection works on a new template, build against it without a profile.
+
 ## Extending
 
 Add a component type in `src/deckgen/components.py`:
@@ -124,4 +158,6 @@ Then use `type: quote` in YAML. Layout, theming, data loading and validation com
 - `data.py`: CSV loading, where/group/sort/limit, pivot, metrics
 - `components.py`: the renderers, plus the registry
 - `builder.py`: reads the YAML, draws titles/footers, dispatches regions, validates
+- `template.py`: finds and opens brand templates (.pptx/.potx), reads their theme,
+  maps layouts and placeholders, and removes sample slides
 - `theme.py`: colors, fonts and the chart palette
