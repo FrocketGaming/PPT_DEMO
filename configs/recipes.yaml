@@ -1,0 +1,242 @@
+# Slide recipes: one slide per common use case, each one a pattern to copy.
+# The README's "Building a good slide" section explains the thinking behind each.
+# Build:     uv run deckgen configs/recipes.yaml
+
+deck:
+  title: Slide recipes
+  author: Analytics Team
+  footer: {chapter: true}
+
+data:
+  monthly: ../data/monthly_sales.csv
+  regional: ../data/sales_by_region.csv
+  channels: ../data/channel_mix.csv
+  campaigns: ../data/campaigns.csv
+  support: ../data/support_metrics.csv
+
+slides:
+  - type: title
+    title: Slide recipes
+    subtitle: One pattern per use case
+
+  # ---------------------------------------------------------------- 1. executive summary
+  # Headline = the conclusion. KPIs give the proof, one callout gives the ask.
+  - title: Revenue beat plan, but Trade Show is dragging returns
+    source: monthly_sales.csv, campaigns.csv
+    top:
+      type: kpis
+      size: 0.35
+      style: accent
+      value_size: 26
+      items:
+        - label: Revenue
+          value: {source: monthly, column: revenue, agg: sum}
+          format: "${:,.0f}"
+          delta: "+4.2%"
+          delta_label: vs. plan
+          icon: "$"
+        - label: Orders
+          value: {source: monthly, column: orders, agg: sum}
+          format: "{:,}"
+        - label: Best return on spend
+          value: {source: campaigns, column: roas, agg: max}
+          format: "{:.1f}x"
+        - label: Worst return on spend
+          value: {source: campaigns, column: roas, agg: min}
+          format: "{:.1f}x"
+          delta: "-1.8x"
+          delta_label: vs. average
+          higher_is_better: true
+    bottom:
+      type: insights
+      style: callout
+      size: 0.25
+      items:
+        - "**Decision needed:** move budget from Trade Show into online retargeting in Q1."
+
+  # ---------------------------------------------------------------- 2. one chart, one message
+  # highlight greys everything except the point; reference draws the target.
+  - title: December hit $276K, 38% above the $200K goal
+    subtitle: Monthly revenue
+    source: monthly_sales.csv
+    full:
+      type: chart
+      kind: column
+      data: monthly
+      x: month
+      y: revenue
+      highlight: Dec
+      reference: {value: 200000, label: $200K goal}
+      number_format: '$#,##0,"K"'
+      data_labels: true
+      gridlines: false
+
+  # ---------------------------------------------------------------- 3. chart plus interpretation
+  # Wide chart on the left, three short points on the right. Each point is a finding, not a label.
+  - title: Q4 accelerated sharply
+    source: monthly_sales.csv
+    left:
+      type: chart
+      kind: line
+      size: 2
+      data: monthly
+      x: month
+      y: [revenue, target]
+      direct_labels: true
+      axis_format: '$#,##0,"K"'
+    right:
+      type: insights
+      heading: Why it matters
+      panel: true
+      items:
+        - December alone was **$276K**
+        - Growth was **volume-led**, not price
+        - The Q4 run-rate becomes the FY27 baseline
+
+  # ---------------------------------------------------------------- 4. comparison
+  # Two panels with the same chart type and a shared axis, so the eye compares like with like.
+  - title: West outsells South in both products
+    source: sales_by_region.csv
+    left:
+      type: chart
+      kind: bar
+      title: Core
+      panel: true
+      data: regional
+      where: {product: Core}
+      group_by: region
+      x: region
+      y: revenue
+      sort_by: revenue
+      descending: true
+      axis_min: 0
+      axis_max: 600000
+      number_format: '$#,##0,"K"'
+      data_labels: true
+      gridlines: false
+    right:
+      type: chart
+      kind: bar
+      title: Pro
+      panel: true
+      data: regional
+      where: {product: Pro}
+      group_by: region
+      x: region
+      y: revenue
+      sort_by: revenue
+      descending: true
+      axis_min: 0
+      axis_max: 600000
+      number_format: '$#,##0,"K"'
+      data_labels: true
+      gridlines: false
+
+  # ---------------------------------------------------------------- 5. ranked list with targets
+  - title: Three of five campaigns cleared 4x return on spend
+    source: campaigns.csv
+    full:
+      type: progress
+      max: 6
+      items:
+        - {label: Webinar Series, value: 5.39, format: "{:.1f}x", target: 4, highlight: true}
+        - {label: Spring Promo, value: 4.0, format: "{:.1f}x", target: 4}
+        - {label: Holiday Blitz, value: 4.0, format: "{:.1f}x", target: 4}
+        - {label: Partner Push, value: 3.09, format: "{:.1f}x", target: 4}
+        - {label: Trade Show, value: 2.2, format: "{:.1f}x", target: 4}
+
+  # ---------------------------------------------------------------- 6. process
+  - title: Rollout takes three quarters
+    top:
+      size: 0.7
+      type: timeline
+      band_height: 1.1
+      label_size: 20
+      font_size: 22
+      active: 1
+      items:
+        - {label: Q1, title: Pilot, text: "Two regions, **10%** of spend"}
+        - {label: Q2, title: Expand, text: All regions, shared playbook}
+        - {label: Q3, title: Optimise, text: Re-baseline targets}
+    bottom:
+      type: insights
+      style: callout
+      size: 0.3
+      items:
+        - "**Risk:** the pilot regions are not representative of the South."
+
+  # ---------------------------------------------------------------- 7. lifecycle
+  - title: Every campaign follows the same loop
+    left:
+      type: cycle
+      size: 1.4
+      center: "Campaign\nloop"
+      items:
+        - {title: Plan, icon: "1"}
+        - {title: Launch, icon: "2"}
+        - {title: Measure, icon: "3"}
+        - {title: Adjust, icon: "4"}
+    right:
+      type: insights
+      style: numbered
+      items:
+        - Set a return-on-spend target **before** launch
+        - Review at week two, not at the end
+        - Stop anything under **2.5x** after one review
+
+  # ---------------------------------------------------------------- 8. chapter divider on a dark background
+  - type: section
+    title: Customer support
+    number: "02"
+    background: primary
+
+  # ---------------------------------------------------------------- 9. scorecard
+  - title: Support quality is steady; North escalations need a look
+    source: support_metrics.csv
+    top:
+      type: kpis
+      size: 0.3
+      style: dark
+      items:
+        - label: Avg. CSAT
+          value: {source: support, column: csat, agg: mean}
+          format: "{:.0%}"
+        - label: Tickets
+          value: {source: support, column: tickets, agg: sum}
+          format: "{:,}"
+        - label: First response
+          value: {source: support, column: first_response_hours, agg: mean}
+          format: "{:.1f} h"
+    bottom:
+      type: table
+      data: support
+      where: {month: [Jan, Feb, Mar]}
+      group_by: region
+      agg: sum
+      columns: {region: Region, tickets: Tickets, escalations: Escalations}
+      sort_by: escalations
+      descending: true
+      highlight_top: 1
+      font_size: 16
+      formats: {tickets: "{:,.0f}", escalations: "{:,.0f}"}
+
+  # ---------------------------------------------------------------- 10. quote
+  - title: What customers say
+    full:
+      type: quote
+      text: "The new process cut our time to resolution in half."
+      author: Head of Operations
+      role: Enterprise customer
+
+  # ---------------------------------------------------------------- 11. agenda tracker
+  - title: Agenda
+    full:
+      type: agenda
+      active: 2
+      items:
+        - {title: Performance, text: Revenue and orders}
+        - {title: Customer support, text: Quality and escalations}
+        - {title: Next steps, text: Decisions and owners}
+
+  - type: closing
+    title: Thank you

@@ -415,7 +415,7 @@ slides:
     source: campaigns.csv, channel_mix.csv
     top:
       type: kpis
-      size: 0.24
+      size: 0.2
       style: outline
       value_size: 26
       items:
@@ -433,7 +433,7 @@ slides:
           value: {source: campaigns, column: roas, agg: mean}
           format: "{:.1f}x"
     left:
-      size: 0.9
+      size: 0.85
       type: chart
       panel: true
       kind: doughnut
@@ -446,7 +446,7 @@ slides:
       data_labels: true
       legend: bottom
     center:
-      size: 1.1
+      size: 1.15
       type: chart
       panel: true
       kind: column
@@ -462,7 +462,7 @@ slides:
       gap_width: 50
       legend: bottom
     right:
-      size: 1.2
+      size: 1.45
       type: table
       panel: true
       data: campaigns

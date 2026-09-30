@@ -7,6 +7,7 @@ uv sync
 uv run deckgen configs/demo.yaml            # -> out/demo.pptx
 uv run deckgen configs/demo.yaml -o my.pptx
 uv run deckgen configs/demo_advanced.yaml   # a full business review: dashboards, scorecards, small multiples
+uv run deckgen configs/recipes.yaml         # one slide per common use case, to copy from
 uv run deckgen configs/demo_branded.yaml    # built on a brand template (see below)
 uv run deckgen layouts "Brand Template"     # list a template's layouts and placeholders
 ```
@@ -58,6 +59,190 @@ Every option is listed in the [Reference](#reference) section below.
 Use any combination, or `full` alone. `left: {size: 1}`, `right: {size: 2}` gives a 1/3–2/3 split.
 To put several components in one region, use `stack: [...]` (each item can have a `weight`).
 
+## Building a good slide
+
+deckgen handles layout and styling. What is left for you is the message. A slide that
+works usually follows four rules:
+
+1. **The title is the conclusion.** "Revenue beat target in 11 of 12 months" says
+   something. "Monthly revenue" does not.
+2. **One slide, one message.** If you need two headlines, make two slides.
+3. **Show the point, grey out the rest.** Use `highlight` on a chart, `active` on a
+   timeline, `panel` on the one thing that matters.
+4. **Words explain, they don't repeat.** Insights say why the chart matters. Keep them to
+   three short points.
+
+`configs/recipes.yaml` builds one slide per pattern below. Copy the one closest to what you
+need.
+
+```
+uv run deckgen configs/recipes.yaml    # -> out/recipes.pptx
+```
+
+### Choosing a layout
+
+| You want to... | Use | Regions |
+|---|---|---|
+| Open with the answer | KPI row plus a callout | `top` (kpis) + `bottom` (insights `callout`) |
+| Prove one point | One large chart | `full` |
+| Show a trend and explain it | Chart plus short bullets | `left` (chart, `size: 2`) + `right` (insights) |
+| Compare two things | Two matching charts, same axis | `left` + `right`, both with `axis_min` and `axis_max` |
+| Compare three things | Three panels and a takeaway | `left` + `center` + `right` + `bottom` |
+| Rank against a target | Progress bars | `full` (progress with `target`) |
+| Explain a process or plan | Timeline plus the main risk | `top` (timeline) + `bottom` (callout) |
+| Explain a repeating loop | Cycle plus rules | `left` (cycle) + `right` (numbered insights) |
+| Report a scorecard | KPI row plus a table | `top` (kpis `dark`) + `bottom` (table) |
+| Break the deck into chapters | Section slide | `type: section` with `number` and `background` |
+| Land a human voice | Quote | `full` (quote) |
+
+### Recipes
+
+**Executive summary.** The first content slide: the answer, the proof, the ask.
+
+```yaml
+- title: Revenue beat plan, but Trade Show is dragging returns
+  top:
+    type: kpis
+    size: 0.32
+    style: accent
+    items:
+      - label: Revenue
+        value: {source: monthly, column: revenue, agg: sum}
+        format: "${:,.0f}"
+        delta: "+4.2%"
+        delta_label: vs. plan
+  bottom:
+    type: insights
+    style: callout
+    items:
+      - "**Decision needed:** move budget from Trade Show into online retargeting in Q1."
+```
+
+**One chart, one message.** Grey out everything except the bar the title is about, and draw
+the goal as a dashed line. The title should say what the highlighted bar shows.
+
+```yaml
+- title: December hit $276K, 38% above the $200K goal
+  full:
+    type: chart
+    kind: column
+    data: monthly
+    x: month
+    y: revenue
+    highlight: Dec                                  # the bar the title is about
+    reference: {value: 200000, label: $200K goal}
+    number_format: '$#,##0,"K"'
+    data_labels: true
+    gridlines: false
+```
+
+**Chart plus interpretation.** Give the chart two thirds of the width. Use `direct_labels`
+so the reader does not have to match a legend to a line.
+
+```yaml
+- title: Q4 accelerated sharply
+  left:  {type: chart, kind: line, size: 2, data: monthly, x: month, y: [revenue, target],
+          direct_labels: true}
+  right: {type: insights, heading: Why it matters, panel: true,
+          items: [December alone was **$276K**, Growth was **volume-led**]}
+```
+
+**Side-by-side comparison.** Give both charts the same `axis_min` and `axis_max`, or the
+bars will not be comparable. Use `where` to slice one data source twice.
+
+```yaml
+- title: West outsells South in both products
+  left:
+    type: chart
+    kind: bar
+    title: Core
+    data: regional
+    where: {product: Core}
+    group_by: region
+    x: region
+    y: revenue
+    axis_min: 0
+    axis_max: 600000
+  right: {type: chart, kind: bar, title: Pro, data: regional, where: {product: Pro},
+          group_by: region, x: region, y: revenue, axis_min: 0, axis_max: 600000}
+```
+
+**Ranking against a target.** `progress` bars read faster than a table when the question is
+"who cleared the bar?".
+
+```yaml
+- title: Three of five campaigns cleared 4x return on spend
+  full:
+    type: progress
+    max: 6
+    items:
+      - {label: Webinar Series, value: 5.39, format: "{:.1f}x", target: 4, highlight: true}
+      - {label: Trade Show, value: 2.2, format: "{:.1f}x", target: 4}
+```
+
+**Plan or process.** Set `active` so the reader sees where you are. Earlier steps show as
+done and later steps are greyed.
+
+```yaml
+- title: Rollout takes three quarters
+  top:
+    type: timeline
+    size: 1.4
+    active: 1
+    items:
+      - {label: Q1, title: Pilot, text: "Two regions, **10%** of spend"}
+      - {label: Q2, title: Expand, text: All regions}
+  bottom:
+    type: insights
+    style: callout
+    items: ["**Risk:** the pilot regions are not representative of the South."]
+```
+
+**Chapter divider.** A dark background flips text to white and tints cards automatically.
+
+```yaml
+- type: section
+  title: Customer support
+  number: "02"
+  background: primary
+```
+
+**Scorecard.** KPIs on top for the headline numbers, a sorted table below for the detail.
+`highlight_top: 1` bolds the row to look at first.
+
+```yaml
+- title: Support quality is steady; North escalations need a look
+  top:    {type: kpis, size: 0.3, style: dark, items: [...]}
+  bottom: {type: table, data: support, group_by: region, agg: sum,
+           columns: {region: Region, escalations: Escalations},
+           sort_by: escalations, descending: true, highlight_top: 1}
+```
+
+### Habits worth copying
+
+- **Put numbers in `data`, not in the slide.** KPI values, chart series and table rows
+  computed from a source stay correct when the data changes. Type a literal only for
+  something that is not in the data, such as a plan variance.
+- **Wrap the key phrase in `**bold**`.** It renders in the accent colour, so a bullet's
+  point survives a skim.
+- **Use `defaults`** for font sizes instead of repeating them on every chart.
+- **Set `source:` on any slide with data.** It adds a footnote and takes no space from the
+  content.
+- **Put the story in `notes:`.** Speaker notes are written to the file, so the config holds
+  the script as well as the slides.
+- **Use `stack` to fit a KPI above bullets** in one column, and `weight` to split the
+  height.
+- **Repeat the `agenda`** with a different `active` between sections, so the audience
+  always knows where they are.
+
+### Things to avoid
+
+- More than about five bullets, or bullets longer than a line and a half. Split the slide.
+- Pie or doughnut charts with more than five slices. Use a sorted `bar` instead.
+- Two charts side by side with different axis ranges.
+- A legend when `direct_labels` or `highlight` would do.
+- Every KPI card with a `delta`. Keep deltas for the numbers that changed meaningfully.
+
 ## Brand templates
 
 Put a `.pptx` or `.potx` in `templates/` and name it in the config:
@@ -73,6 +258,25 @@ template's sample slides are removed. Chart and table colours are read from the
 template's theme, and `deck.theme` can override them. Regions (`left`, `right`, ...) are
 laid out inside the template's content area. `configs/demo_branded.yaml` has the same
 slides as `demo.yaml`, plus the template line.
+
+**Colours are detected from the template.** deckgen reads the template's theme
+(**Design → Variants → Colors** in PowerPoint) and maps it as follows:
+
+| deckgen colour | Taken from the template's |
+|---|---|
+| `primary` (titles, table headers) | Dark 2, or Dark 1 if there is no Dark 2 |
+| `accent` (highlights, `**bold**`) | Accent 1 |
+| `text` | Dark 1 |
+| `light` (cards, callouts) | Light 2 |
+| `palette` (chart series, in order) | Dark 2, then Accent 1 to 6. Very light colours are skipped, because they vanish on a white chart |
+| `font` | The theme's body font |
+
+Not detected: `muted`, `subtle`, `positive` and `negative`. They keep the built-in greys,
+teal and red. If those clash with the brand, set them in `deck.theme`.
+
+Colours are applied in this order, and later ones win: the template's theme, then `theme:`
+in the profile, then `deck.theme` in the config. If a chart uses the wrong colours, check
+what is in the template's Colors scheme, then override just the `palette`.
 
 **Profile.** `templates/<name>.yaml`, next to the template, sets the default layout for
 each slide type and which placeholder holds the title, subtitle, date or tag. It also sets
@@ -365,6 +569,8 @@ Charts also accept the [query keys](#data-queries).
 | `style` | `chevron` | `chevron` or `dots` |
 | `active` | none | Current step: drawn in the accent colour, earlier steps as done, later steps greyed |
 | `font_size` | `16` | Title size; the text is 3pt smaller |
+| `band_height` | up to `0.8` | `chevron` only: height of the chevron band in inches. Raise it, with `label_size` and `font_size`, when the timeline has room to fill |
+| `label_size` | `15` | `chevron` only: size of the label inside the chevron |
 
 **`cycle`**: a lifecycle, with steps around a ring, clockwise from the top.
 
