@@ -490,8 +490,7 @@ def render_cycle(slide, box: Box, spec: dict, ctx: Context) -> None:
         rad = math.radians(deg)
         ax, ay = ax - arrow_h / 6 * math.sin(rad), ay + arrow_h / 6 * math.cos(rad)
         arrow = _shape(slide, MSO_SHAPE.ISOSCELES_TRIANGLE,
-                       Box(ax - 0.12, ay - arrow_h / 2, 0.24, arrow_h),
-                       theme.rgb(theme.mix("light", "subtle", 0.9)))
+                       Box(ax - 0.12, ay - arrow_h / 2, 0.24, arrow_h), theme.rgb("muted"))
         arrow.rotation = deg + 180
 
     label_w = spec.get("label_width", min(2.8, box.w / 2 - r - node / 2 - 0.25))
