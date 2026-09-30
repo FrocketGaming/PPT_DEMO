@@ -471,19 +471,26 @@ def render_cycle(slide, box: Box, spec: dict, ctx: Context) -> None:
     node = spec.get("node_size", min(0.95, box.h * 0.19))
     label_h = spec.get("label_height", 0.8)
     r = min(box.h / 2 - node / 2 - 0.15 - label_h, box.w * spec.get("radius", 0.2))
-    ring = _shape(slide, MSO_SHAPE.DONUT, Box(cx - r, cy - r, 2 * r, 2 * r),
+    band = 0.07
+    outer = r + band / 2  # the band straddles r, so nodes and arrows sit on its centreline
+    ring = _shape(slide, MSO_SHAPE.DONUT, Box(cx - outer, cy - outer, 2 * outer, 2 * outer),
                   theme.rgb(theme.mix("light", "subtle", 0.6)))
-    ring.adjustments[0] = 0.07 / (2 * r)
+    ring.adjustments[0] = band / (2 * outer)
 
     def at(deg: float, dist: float) -> tuple[float, float]:
         rad = math.radians(deg)
         return cx + dist * math.cos(rad), cy + dist * math.sin(rad)
 
     step = 360 / n
+    arrow_h = 0.2
     for i in range(n):  # arrowheads halfway between nodes, pointing clockwise
         deg = -90 + step * (i + 0.5)
         ax, ay = at(deg, r)
-        arrow = _shape(slide, MSO_SHAPE.ISOSCELES_TRIANGLE, Box(ax - 0.12, ay - 0.1, 0.24, 0.2),
+        # a triangle's centroid is a sixth of its height behind its box centre; nudge it forward
+        rad = math.radians(deg)
+        ax, ay = ax - arrow_h / 6 * math.sin(rad), ay + arrow_h / 6 * math.cos(rad)
+        arrow = _shape(slide, MSO_SHAPE.ISOSCELES_TRIANGLE,
+                       Box(ax - 0.12, ay - arrow_h / 2, 0.24, arrow_h),
                        theme.rgb(theme.mix("light", "subtle", 0.9)))
         arrow.rotation = deg + 180
 
