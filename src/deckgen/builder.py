@@ -112,8 +112,8 @@ def _plain_title_slide(prs, slide_cfg: dict, theme: Theme, kind: str, deck: dict
         tf = components._textbox(slide, Box(SLIDE_W / 2, 0.2, SLIDE_W / 2 - 0.3, SLIDE_H - 0.4),
                                  anchor=MSO_ANCHOR.MIDDLE)
         tf.paragraphs[0].alignment = components.ALIGN["right"]
-        add_rich_text(tf.paragraphs[0], str(number), theme, 300,
-                      color=base.mix(bg, "primary", 0.07), bold=True)
+        faint = base.mix(bg, "FFFFFF" if base.is_dark(bg) else "primary", 0.07)
+        add_rich_text(tf.paragraphs[0], str(number), theme, 300, color=faint, bold=True)
     elif kind != "section" and deck.get("decor", True):
         for x, y, d, t, color in ((8.9, 0.9, 7.2, 0.16, base.mix(bg, "FFFFFF", 0.07)),
                                   (10.6, -1.3, 4.0, 0.035, base.hex("accent"))):

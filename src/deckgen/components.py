@@ -613,6 +613,40 @@ def _label_last_point(series, n_points: int, text: str, color: RGBColor, size: f
     label.position = XL_LABEL_POSITION.RIGHT
 
 
+def _text_on(fill: RGBColor, theme: Theme) -> RGBColor:
+    """White text on a dark fill, the theme's text colour on a light one."""
+    return theme.rgb("FFFFFF" if theme.is_dark(str(fill)) else "text")
+
+
+def _label_point_on_fill(point, fill: RGBColor, theme: Theme, number_format: str,
+                         percentage: bool) -> None:
+    """Styles one pie/doughnut slice's label so it stays readable on the slice colour."""
+    label = point.data_label
+    label.font.size = Pt(10)
+    label.font.color.rgb = _text_on(fill, theme)
+    dlbl = label._dLbl
+    dlbl.find(qn("c:showVal")).set("val", "0" if percentage else "1")
+    dlbl.find(qn("c:showPercent")).set("val", "1" if percentage else "0")
+    num_fmt = dlbl.makeelement(qn("c:numFmt"), {"formatCode": number_format, "sourceLinked": "0"})
+    dlbl.find(qn("c:txPr")).addprevious(num_fmt)
+
+
+def _reserve_right_margin(chart, inches: float, chart_width: float) -> None:
+    """Shrinks the plot area so labels placed right of the last point sit outside the plot."""
+    plot_area = chart._chartSpace.chart.plotArea
+    for old in plot_area.findall(qn("c:layout")):
+        plot_area.remove(old)
+    left, top, bottom = 0.09, 0.04, 0.10
+    width = 1 - left - min(0.4, inches / chart_width)
+    layout = plot_area.makeelement(qn("c:layout"), {})
+    manual = layout.makeelement(qn("c:manualLayout"), {})
+    for tag, val in (("layoutTarget", "inner"), ("xMode", "edge"), ("yMode", "edge"),
+                     ("x", left), ("y", top), ("w", width), ("h", 1 - top - bottom)):
+        manual.append(manual.makeelement(qn(f"c:{tag}"), {"val": str(val)}))
+    layout.append(manual)
+    plot_area.insert(0, layout)
+
+
 @register("chart")
 def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
     """Native (editable) PowerPoint chart. kind: see CHART_TYPES.
@@ -650,6 +684,9 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
         if kind == "waterfall":
             series = _waterfall(categories, next(iter(series.values())), spec.get("totals", []))
         if reference:
+            if kind in BAR_KINDS:  # an empty last slot gives the line's end label room beside the bars
+                categories = [*categories, ""]
+                series = {name: [*values, None] for name, values in series.items()}
             series[ref_name] = [reference["value"]] * len(categories)
         cd = CategoryChartData(number_format=number_format)
         cd.categories = categories
@@ -690,13 +727,22 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
         chart.legend.position = LEGEND[legend]
         chart.legend.include_in_layout = False
 
+    end_labels = [s.name for s in shown] if direct and kind in ("line", "combo") else []
+    if ref_name:
+        end_labels.append(ref_name)
+    if end_labels and kind not in ("pie", "doughnut", "scatter"):
+        longest = max(len(name) for name in end_labels)
+        _reserve_right_margin(chart, longest * 0.09 + 0.2, box.w)
+
     plot = plots[0]
+    fills: list[RGBColor] = []  # fill of each pie slice, or of each series, for label contrast
     if kind in ("pie", "doughnut"):
         for i, point in enumerate(plot.series[0].points):
             point.format.fill.solid()
-            point.format.fill.fore_color.rgb = (
+            fills.append(
                 (theme.rgb("accent") if categories[i] in highlight else theme.rgb("subtle"))
                 if highlight else theme.series_color(i))
+            point.format.fill.fore_color.rgb = fills[-1]
     else:
         waterfall_colors = {"Total": "primary", "Increase": "positive", "Decrease": "negative"}
         for i, (s, as_line) in enumerate(all_series):
@@ -733,6 +779,7 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
             else:
                 s.format.fill.solid()
                 s.format.fill.fore_color.rgb = color
+                fills.append(color)
                 if highlight and len(shown) == 1:
                     for j, cat in enumerate(categories):
                         point = s.points[j]
@@ -760,6 +807,7 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
         ca.has_major_gridlines = False
         if kind in ("bar", "stacked_bar", "stacked_bar_100"):
             ca.reverse_order = True  # keep first row at the top
+            va._element.find(qn("c:crosses")).set("val", "max")  # ...and the value axis at the bottom
 
     label_format = spec.get("label_format", number_format)
     if kind == "waterfall" and spec.get("data_labels", True):
@@ -773,6 +821,7 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
             dl.number_format_is_linked = False
             dl.font.size = Pt(10)
             dl.font.bold = True
+            dl.font.color.rgb = _text_on(theme.rgb(waterfall_colors[s.name]), theme)
     elif spec.get("data_labels"):
         plot.has_data_labels = True
         dl = plot.data_labels
@@ -782,6 +831,16 @@ def render_chart(slide, box: Box, spec: dict, ctx: Context) -> None:
         if kind in ("pie", "doughnut"):
             dl.show_percentage = spec.get("show_percentage", False)
             dl.show_value = not dl.show_percentage
+            for point, fill in zip(plot.series[0].points, fills):
+                _label_point_on_fill(point, fill, theme, label_format, dl.show_percentage)
+        elif kind.startswith("stacked"):
+            for series, fill in zip(plot.series, fills):
+                series_dl = series.data_labels
+                series_dl.show_value = True
+                series_dl.number_format = label_format
+                series_dl.number_format_is_linked = False
+                series_dl.font.size = Pt(10)
+                series_dl.font.color.rgb = _text_on(fill, theme)
 
 
 @register("table")
