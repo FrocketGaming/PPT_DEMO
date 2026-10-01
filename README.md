@@ -42,7 +42,7 @@ slides:
     right: {type: chart, kind: line, data: monthly, x: month, y: [revenue, target]}
 ```
 
-Every option is listed in the [Reference](#reference) section below.
+Every option is listed in the full reference, [`docs/index.html`](docs/index.html).
 
 ## Regions (where things go)
 
@@ -280,7 +280,7 @@ what is in the template's Colors scheme, then override just the `palette`.
 
 **Profile.** `templates/<name>.yaml`, next to the template, sets the default layout for
 each slide type and which placeholder holds the title, subtitle, date or tag. It also sets
-the content area (see [Template profile](#template-profile)). Without a profile, deckgen
+the content area (see [Template profile](docs/index.html#profile)). Without a profile, deckgen
 guesses from layout names such as "Title Only".
 
 ### Finding layouts
@@ -366,302 +366,21 @@ To check that auto-detection works on a new template, build against it without a
 
 ## Reference
 
-### Commands
+The full reference is in [`docs/index.html`](docs/index.html). Open it in a browser
+(`start docs/index.html` on Windows, `open` on macOS). It is a single searchable page that
+covers every option, its default and an example:
 
-| Command | What it does |
-|---|---|
-| `deckgen <config.yaml>` | Build the deck to `./out/<config name>.pptx` |
-| `deckgen <config.yaml> -o <file.pptx>` | Build to a specific file |
-| `deckgen layouts "<template>"` | List a template's layouts and placeholder numbers. Takes a name in `./templates/` or a path |
+- **Formatting:** which options take Python formats (KPIs, progress bars, tables) and
+  which take Excel number formats (charts), with cheat sheets for both
+- **Data:** sources, queries (`where`, `group_by`, `sort_by`, ...) and computed metrics
+  (`sum`, `mean`, `growth`, ...)
+- **Components:** `insights`, `text`, `quote`, `kpis`, `progress`, `chart`, `table`,
+  `agenda`, `timeline`, `cycle`, `image`
+- **Deck and slides:** `deck`, `theme`, `defaults`, slide keys, regions and stacks
+- **Brand templates:** placeholders and the template profile
+- **Errors and fixes:** what each build error means
 
-Run them with `uv run` in front, or activate the virtual environment first. A config
-mistake stops the build with a message naming the slide and the problem.
-
-### `deck`
-
-| Key | Default | Meaning |
-|---|---|---|
-| `title`, `author` | `""` | Written to the file's document properties |
-| `template` | none | Brand template name (file in `templates/`, extension optional) |
-| `templates_dir` | none | Extra folder to search for templates, relative to the config |
-| `date` | current month and year | Date shown on title slides (templates with a `date` role) |
-| `theme` | built-in, or read from the template | Colour and font overrides, see below |
-| `footer` | none | Built-in look: `{chapter: true}` shows the current section title in the footer; `{progress: true}` draws a progress bar along the bottom edge |
-| `decor` | `true` | Built-in look: decorative rings on title and closing slides |
-
-Templates are searched for in `templates_dir`, then `templates/` next to the config, then
-`templates/` one level up, then `./templates`.
-
-`theme` keys: `font`, `primary` (titles, table headers), `accent` (highlights, `**bold**`),
-`text`, `muted` (labels, footnotes), `light` (card and callout backgrounds), `subtle`
-(everything a chart `highlight` greys out), `positive` and `negative` (KPI deltas), and
-`palette` (list of chart series colours). Colours are hex, with or without `#`.
-
-### `data`
-
-```yaml
-data:
-  monthly: ../data/monthly_sales.csv      # CSV path, relative to the config
-  targets:                                # or inline rows
-    - {region: North, target: 400000}
-    - {region: South, target: 250000}
-```
-
-Numbers in CSVs are detected automatically.
-
-### `defaults`
-
-Options applied to every component of a type, e.g. `defaults: {chart: {font_size: 11},
-table: {font_size: 11}}`. Anything set on the component itself wins.
-
-### Slides
-
-| Key | Slide types | Meaning |
-|---|---|---|
-| `type` | all | `title`, `section`, `content` (default), `closing` |
-| `title`, `subtitle` | all | Slide title and optional subtitle |
-| `left` `center` `right` `top` `bottom` `full` | content | Regions, each holding one component or a `stack` |
-| `regions` | content | Same as the region keys, grouped under one key |
-| `gap` | content | Space between regions in inches (default `0.3`) |
-| `source` | content | Footnote, shown as "Source: ..." |
-| `notes` | all | Speaker notes |
-| `skip` | all | `true` leaves the slide out of the build |
-| `font_size` | title, section, closing | Title size (built-in look only; templates use their own) |
-| `eyebrow` | all (built-in look) | Small uppercase kicker above the title, e.g. `Chapter 02` |
-| `background` | all (built-in look) | Slide colour: a theme colour name or hex. On a dark colour, text turns white and cards become a tint of the background |
-| `number` | section (built-in look) | Large faint numeral on the right, e.g. `"02"` |
-| `layout` | all (template only) | Use this template layout instead of the profile's default |
-| `placeholders` | all (template only) | Fill the layout's numbered boxes, see below |
-| `tag` | content | Chapter label: in a template's tag box, or in the footer with `deck.footer.chapter`. Defaults to the latest section title |
-| `date` | title (template only) | Overrides `deck.date` for this slide |
-
-A region is either a component (`left: {type: chart, ...}`) or a stack:
-
-```yaml
-left:
-  size: 1                 # region size (see Regions)
-  stack:
-    - {type: kpis, weight: 1, items: [...]}       # weight = share of the region's height
-    - {type: insights, weight: 2, items: [...]}
-```
-
-### Components
-
-Any component can take `panel: true` (or a colour) to sit on a rounded, tinted backdrop,
-with `padding` (inches, default `0.2`) between the panel edge and the component.
-
-**`insights`**: bullet points.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | List of strings. `**text**` is bold in the accent colour |
-| `heading` | none | Bold line above the items |
-| `style` | `bullets` | `bullets`, `numbered`, or `callout` (shaded box with an accent bar) |
-| `font_size` | `16` | Item size in points; the heading is 2pt larger |
-| `spacing` | `10` | Space after each item, in points |
-
-**`text`**: free text.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `text` | | The text. A blank line starts a new paragraph |
-| `align` | `left` | `left`, `center`, `right` |
-| `valign` | `top` | `top`, `middle`, `bottom` |
-| `font_size` | `16` | Points |
-| `bold` | `false` | |
-| `italic` | `false` | |
-| `color` | `text` | Theme colour name or hex |
-
-**`quote`**: a pull quote with a large quotation mark.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `text` | | The quote |
-| `author`, `role` | none | Attribution lines under the quote |
-| `font_size` | `30` | Quote size |
-| `color` | `primary` | Quote colour |
-
-**`kpis`**: a row of metric cards.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | One card per item, see below |
-| `value_size` | `30` | Size of the big number on every card |
-| `style` | `flat` | `flat`, `accent` (accent bar down the left edge), `outline`, or `dark` (filled with the primary colour) |
-| `gap` | `0.25` | Space between cards in inches |
-
-Each item takes:
-
-| Key | Meaning |
-|---|---|
-| `label` | Small text above the value |
-| `value` | A literal (`187.4`, `"Holiday Blitz"`) or a computed metric (below) |
-| `format` | Python format for the value, e.g. `"${:,.0f}"`, `"{:.0%}"`, `"{:,}"` |
-| `delta` | Change line under the value, literal or computed. A leading `-` shows ▼, otherwise ▲ |
-| `delta_format` | Python format for the delta |
-| `delta_label` | Text after the delta, e.g. `vs. plan` |
-| `higher_is_better` | Default `true`. Set `false` to show increases in the `negative` colour |
-| `value_size` | Overrides the row's `value_size` for this card |
-| `icon` | A glyph shown in an accent circle in the card's corner: any Unicode symbol, e.g. `"★"`, `"⏱"`, `"$"`, `"↗"` |
-| `note` | A small line under the value (or the delta) |
-
-A computed metric is `{source, column, agg}`, and it also accepts the
-[query keys](#data-queries). `agg` is one of `sum` (default), `mean`, `count`, `min`,
-`max`, `first`, `last`, or `growth`. `growth` is the relative % change from the first
-value to the last, `(last − first) / first`, returned as a fraction (100 → 150 gives
-`0.5`; format it with `"{:+.0%}"` to show `+50%`). First and last follow row order. With
-`group_by`, rows are first combined per group using `group_agg` (default `sum`), then
-`agg` is applied.
-
-```yaml
-value: {source: monthly, column: revenue, agg: sum}
-# quarterly totals for one product, Q4 vs Q1:
-delta: {source: regional, column: revenue, where: {product: Pro}, group_by: quarter, agg: growth}
-```
-
-**`chart`**: a native, editable chart.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `kind` | `column` | `column`, `stacked_column`, `stacked_column_100`, `bar`, `stacked_bar`, `stacked_bar_100`, `line`, `area`, `pie`, `doughnut`, `scatter`, `combo`, `waterfall` |
-| `data` | | Source name, or inline `{categories: [...], series: {Name: [...]}}` |
-| `x` | | Category column (the x values for `scatter`) |
-| `y` | | One value column or a list; each becomes a series |
-| `series_by` | none | Split one `y` column into a series per value of this column (long → wide). For `scatter`, it groups points into coloured series |
-| `series_names` | column names | Rename series: `{revenue: "Revenue ($)"}` |
-| `title` | none | Chart title |
-| `legend` | `bottom` for multi-series, pie and doughnut; else `none` | `bottom`, `top`, `left`, `right`, `none` |
-| `data_labels` | `false` | Show values on the chart |
-| `number_format` | `General` | Excel number format for the data, e.g. `$#,##0`, `0%`, `$#,##0,"K"` |
-| `axis_format` | `number_format` | Excel format for the value axis |
-| `label_format` | `number_format` | Excel format for the data labels |
-| `show_percentage` | `false` | Pie and doughnut labels show percentages |
-| `gridlines` | `true` | Horizontal gridlines |
-| `gap_width` | `60` | Space between bars, as a % of bar width |
-| `axis_min`, `axis_max` | automatic | Fix the value axis range, e.g. so side-by-side charts share a scale |
-| `highlight` | none | A category or series name, or a list. Those are drawn in the accent colour and everything else in `subtle` grey |
-| `direct_labels` | `false` | Line charts: name each line at its last point instead of using a legend |
-| `reference` | none | `{value: 230000, label: Target}`: a dashed horizontal line, labelled at its end. Column, stacked column, line, area and combo |
-| `line` | none | `combo` only: the `y` columns drawn as lines over the columns |
-| `totals` | none | `waterfall` only: categories whose value is a running total (drawn as full bars); other values are changes |
-| `font_size` | `11` | Points |
-
-Charts also accept the [query keys](#data-queries).
-
-```yaml
-# columns with the target as a line
-{type: chart, kind: combo, data: monthly, x: month, y: [revenue, target], line: [target]}
-# a bridge: first and last rows are totals, the rest are changes
-{type: chart, kind: waterfall, data: bridge, x: step, y: change, totals: [Q1, Q4]}
-```
-
-**`agenda`**: numbered chapters.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | Strings, or `{title, text, number}` |
-| `active` | none | Chapter number to highlight; the others are dimmed. Repeat the agenda with a different `active` to track progress through the deck |
-| `layout` | `rows` | `rows` or `columns` |
-| `font_size` | `20` | Title size; the description is 6pt smaller |
-
-**`timeline`**: steps from left to right.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | `{label, title, text}` per step. The label sits inside the chevron or above the dot |
-| `style` | `chevron` | `chevron` or `dots` |
-| `active` | none | Current step: drawn in the accent colour, earlier steps as done, later steps greyed |
-| `font_size` | `16` | Title size; the text is 3pt smaller |
-| `band_height` | up to `0.8` | `chevron` only: height of the chevron band in inches. Raise it, with `label_size` and `font_size`, when the timeline has room to fill |
-| `label_size` | `15` | `chevron` only: size of the label inside the chevron |
-
-**`cycle`**: a lifecycle, with steps around a ring, clockwise from the top.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | `{title, text, icon}` per step. Without an `icon`, the node shows its number |
-| `center` | none | Text in the middle of the ring (`\n` for a line break) |
-| `active` | none | Step to highlight |
-| `radius` | `0.2` | Ring radius as a fraction of the region's width |
-| `label_width` | fits the region | Width of each step's label, in inches |
-
-**`progress`**: horizontal bars, one row per item.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `items` | | `{label, value, max, target, format, highlight, color}` per bar. `value`, `max` and `target` can be computed metrics |
-| `max` | `1` | Default full-bar value, so fractions work as-is |
-| `format` | none | Python format for the values, e.g. `"{:.0%}"` |
-| `label_width` | `0.3` | Share of the width used by labels |
-| `color` | `primary` | Bar colour; `highlight: true` on an item uses the accent colour |
-
-**`table`**
-
-| Key | Default | Meaning |
-|---|---|---|
-| `data` | | Source name |
-| `columns` | all | List of columns, or `{column: Header}` to rename them |
-| `formats` | none | Python format per column: `{revenue: "${:,.0f}"}` |
-| `highlight_top` | `0` | Make the first N rows bold |
-| `font_size` | `12` | Points |
-
-Tables also accept the [query keys](#data-queries). Number columns are right-aligned.
-
-**`image`**
-
-| Key | Meaning |
-|---|---|
-| `path` | Image file, relative to the config. It fills the region's height and keeps its proportions |
-
-### Data queries
-
-Charts, tables and computed KPI values accept these keys. They are applied in this order:
-
-| Key | Example | Meaning |
-|---|---|---|
-| `where` | `{region: West}` or `{region: [West, North]}` | Keep matching rows |
-| `group_by` | `region` or `[region, quarter]` | One row per group |
-| `agg` | `sum` | How `group_by` combines number columns: `sum`, `mean`, `count`, `min`, `max` |
-| `sort_by` | `revenue` | Sort rows |
-| `descending` | `true` | Sort largest first |
-| `limit` | `5` | Keep the first N rows |
-
-### Placeholders
-
-`placeholders:` maps a placeholder number (from `deckgen layouts`) to one of:
-
-| Value | Result |
-|---|---|
-| `"text"` | Text with the template's styling. `\n` starts a new line |
-| `[line, line]` | One paragraph per item, using the template's bullet style |
-| `{text: ..., font_size: 14}` | Styled text. Also `bold`, `italic`, `color`, `align` |
-| `{type: chart, ...}` (any component) | The component, drawn where the placeholder sits |
-| `{type: image, path: ...}` in a picture placeholder | The image, cropped to fill the placeholder |
-
-### Template profile
-
-`templates/<name>.yaml`:
-
-```yaml
-slides:                                  # one entry per slide type: title, section, content, closing
-  title:
-    layout: Presentation Title Cool Gray # layout name from `deckgen layouts`
-    title: 10                            # placeholder number for each role
-    subtitle: 11
-    date: 12
-  content:
-    layout: Content Slide – Title Only
-    title: 22
-    tag: 21
-content_area: [0.44, 1.6, 12.47, 5.1]   # x, y, width, height in inches for regions
-theme:                                   # optional overrides of colours read from the template
-  palette: ["1F4456", "E8542C", "448790"]
-```
-
-Roles are `title`, `subtitle`, `date` and `tag`. Without a profile, layouts are guessed
-from their names ("Title Slide", "Section Header", "Title Only", "Thank You"). The title
-is the template's title placeholder, or else the topmost wide text box. The
-content area is the space between the title and any footer bar.
+When you add or change an option, update `docs/index.html` in the same commit.
 
 ## Extending
 
@@ -674,6 +393,7 @@ def render_quote(slide, box, spec, ctx):
 ```
 
 Then use `type: quote` in YAML. Layout, theming, data loading and validation come for free.
+Add a section for the new component to `docs/index.html`.
 
 ## Layout of the code
 

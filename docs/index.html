@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>deckgen reference</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-side: #f6f7f9;
+  --bg-code: #f3f4f7;
+  --bg-note: #fff6ec;
+  --bg-tip: #eef6f3;
+  --line: #e2e5ea;
+  --text: #22252b;
+  --muted: #646b76;
+  --accent: #c8573b;
+  --link: #1f5d99;
+  --key: #1f3a5f;
+  --mark: #ffe58a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171b; --bg-side: #1b1e23; --bg-code: #20242a; --bg-note: #2b2318; --bg-tip: #18272250;
+    --line: #2d3239; --text: #e3e5e8; --muted: #9aa1ab; --accent: #ef8a6e; --link: #7cb3ec;
+    --key: #a9c6ea; --mark: #6b5a17;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171b; --bg-side: #1b1e23; --bg-code: #20242a; --bg-note: #2b2318; --bg-tip: #18272250;
+  --line: #2d3239; --text: #e3e5e8; --muted: #9aa1ab; --accent: #ef8a6e; --link: #7cb3ec;
+  --key: #a9c6ea; --mark: #6b5a17;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 16px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font: 13px/1.5 "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+code { background: var(--bg-code); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--bg-code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; position: relative; }
+pre code { background: none; padding: 0; }
+.copy {
+  position: absolute; top: 6px; right: 6px; font: 12px sans-serif; color: var(--muted);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 2px 8px;
+  cursor: pointer; opacity: 0; transition: opacity .15s;
+}
+pre:hover .copy, .copy:focus { opacity: 1; }
+
+.layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
+aside {
+  background: var(--bg-side); border-right: 1px solid var(--line);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 18px 16px 40px;
+}
+aside .brand { font-weight: 700; font-size: 17px; color: var(--text); display: block; margin-bottom: 12px; }
+#search {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--text); font: inherit; font-size: 14px;
+}
+nav h4 { margin: 18px 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+nav a { display: block; padding: 2px 8px; border-radius: 4px; color: var(--text); font-size: 14px; }
+nav a:hover { background: var(--line); text-decoration: none; }
+nav a.active { color: var(--accent); font-weight: 600; }
+nav a.hidden { display: none; }
+#theme-toggle {
+  margin-top: 22px; font: 13px sans-serif; color: var(--muted); background: none;
+  border: 1px solid var(--line); border-radius: 5px; padding: 3px 10px; cursor: pointer;
+}
+
+main { padding: 28px 48px 120px; max-width: 980px; }
+section { border-bottom: 1px solid var(--line); padding-bottom: 26px; margin-bottom: 26px; }
+section.hidden { display: none; }
+h1 { font-size: 30px; margin: 0 0 6px; }
+h2 { font-size: 23px; margin: 0 0 10px; }
+h2 code { font-size: 20px; }
+h3 { font-size: 17px; margin: 24px 0 8px; }
+p.lead { color: var(--muted); font-size: 16px; margin-top: 0; }
+.tag { display: inline-block; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 0 8px; margin-left: 6px; vertical-align: middle; font-weight: 400; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 14px; }
+th, td { text-align: left; vertical-align: top; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+td:first-child code { color: var(--key); font-weight: 600; white-space: nowrap; }
+td.def { white-space: nowrap; color: var(--muted); }
+
+.note, .tip { border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+.note { background: var(--bg-note); border-left: 3px solid var(--accent); }
+.tip { background: var(--bg-tip); border-left: 3px solid #2a9d8f; }
+.note p, .tip p { margin: 4px 0; }
+mark { background: var(--mark); color: inherit; border-radius: 2px; }
+.empty { color: var(--muted); display: none; }
+
+@media (max-width: 820px) {
+  .layout { display: block; }
+  aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; }
+  nav { max-height: 40vh; overflow-y: auto; }
+  main { padding: 20px 16px 80px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <a class="brand" href="#top">deckgen reference</a>
+  <input id="search" type="search" placeholder="Search options… ( / )" aria-label="Search the reference">
+  <nav id="nav">
+    <h4>Start</h4>
+    <a href="#start">Getting started</a>
+    <a href="#config">Config shape</a>
+    <h4>Concepts</h4>
+    <a href="#regions">Regions and stacks</a>
+    <a href="#common">Keys every component takes</a>
+    <a href="#colours">Colours</a>
+    <a href="#rich-text">Bold and line breaks</a>
+    <h4>Formatting</h4>
+    <a href="#formatting">Which format goes where</a>
+    <a href="#python-format">Python formats</a>
+    <a href="#excel-format">Excel number formats</a>
+    <h4>Data</h4>
+    <a href="#data">Data sources</a>
+    <a href="#queries">Queries</a>
+    <a href="#metrics">Computed metrics</a>
+    <h4>Components</h4>
+    <a href="#c-insights">insights</a>
+    <a href="#c-text">text</a>
+    <a href="#c-quote">quote</a>
+    <a href="#c-kpis">kpis</a>
+    <a href="#c-progress">progress</a>
+    <a href="#c-chart">chart</a>
+    <a href="#c-table">table</a>
+    <a href="#c-agenda">agenda</a>
+    <a href="#c-timeline">timeline</a>
+    <a href="#c-cycle">cycle</a>
+    <a href="#c-image">image</a>
+    <h4>Deck and slides</h4>
+    <a href="#deck">deck</a>
+    <a href="#theme">theme</a>
+    <a href="#defaults">defaults</a>
+    <a href="#slides">Slides</a>
+    <h4>Brand templates</h4>
+    <a href="#placeholders">Placeholders</a>
+    <a href="#profile">Template profile</a>
+    <h4>Help</h4>
+    <a href="#errors">Errors and fixes</a>
+    <a href="#extending">Adding a component</a>
+  </nav>
+  <button id="theme-toggle" type="button">Toggle dark mode</button>
+</aside>
+
+<main id="top">
+<p class="empty" id="no-results">No section matches that search.</p>
+
+<!-- ================================================================== start -->
+<section id="start">
+<h1>deckgen reference</h1>
+<p class="lead">Every option for every component, with defaults and examples. For advice on <em>what</em> to put on a slide, see “Building a good slide” in the README.</p>
+
+<pre><code>uv sync
+uv run deckgen configs/demo.yaml              # -> out/demo.pptx
+uv run deckgen configs/demo.yaml -o my.pptx   # build to a specific file
+uv run deckgen layouts "Brand Template"       # list a template's layouts and placeholders</code></pre>
+
+<div class="table-wrap"><table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>deckgen &lt;config.yaml&gt;</code></td><td>Build the deck to <code>./out/&lt;config name&gt;.pptx</code></td></tr>
+<tr><td><code>deckgen &lt;config.yaml&gt; -o &lt;file.pptx&gt;</code></td><td>Build to a specific file</td></tr>
+<tr><td><code>deckgen layouts "&lt;template&gt;"</code></td><td>List a template's layouts and placeholder numbers. Takes a name in <code>./templates/</code> or a path</td></tr>
+</table></div>
+
+<p>Each build writes a fresh <code>.pptx</code>, so edits made in PowerPoint are lost on the next build. The YAML is the source of truth. Close the deck in PowerPoint before rebuilding, because Windows locks open files.</p>
+
+<p>Example configs to copy from:</p>
+<ul>
+<li><code>configs/demo.yaml</code>: a short tour of the main components</li>
+<li><code>configs/recipes.yaml</code>: one slide per common use case</li>
+<li><code>configs/demo_advanced.yaml</code>: a full business review with dashboards, scorecards and small multiples</li>
+<li><code>configs/demo_branded.yaml</code>: the demo built on a brand template</li>
+</ul>
+</section>
+
+<section id="config">
+<h2>Config shape</h2>
+<p>A config has four top-level keys. Only <code>slides</code> is required.</p>
+<pre><code>deck:                          # file-wide settings, see "deck"
+  title: FY2026 review
+  theme: {primary: "#1F3A5F", accent: "#E07A5F", font: Calibri}
+
+data:                          # named data sources, see "Data sources"
+  monthly: ../data/monthly_sales.csv
+
+defaults:                      # options applied to every component of a type
+  chart: {font_size: 11}
+
+slides:
+  - type: title                # title | section | content (default) | closing
+    title: FY2026 review
+    subtitle: Revenue, product and customers
+
+  - title: Revenue beat target in 11 of 12 months
+    subtitle: Monthly revenue vs. target
+    source: monthly_sales.csv
+    notes: Speaker notes go here.
+    left:  {type: insights, items: [December alone was **$276K**]}
+    right: {type: chart, kind: line, data: monthly, x: month, y: [revenue, target]}</code></pre>
+<div class="tip"><p>A config mistake stops the build with a message naming the slide and the problem, for example <code>slide 4 ('Revenue beat target'): region 'right': column(s) ['revnue'] not in 'monthly'</code>. See <a href="#errors">Errors and fixes</a>.</p></div>
+</section>
+
+<!-- ================================================================== concepts -->
+<section id="regions">
+<h2>Regions and stacks</h2>
+<p>A content slide places components in named regions. Use any combination, or <code>full</code> on its own.</p>
+<pre><code>+-----------------------------+
+|            top              |   size = fraction of the height (default 0.3)
++---------+---------+---------+
+|  left   | center  |  right  |   size = relative width (default 1)
++---------+---------+---------+
+|           bottom            |
++-----------------------------+</code></pre>
+<div class="table-wrap"><table>
+<tr><th>Region</th><th><code>size</code> means</th><th>Default</th></tr>
+<tr><td><code>left</code>, <code>center</code>, <code>right</code></td><td>Relative width. <code>left: {size: 1}</code> and <code>right: {size: 2}</code> give a 1/3–2/3 split</td><td class="def">1</td></tr>
+<tr><td><code>top</code>, <code>bottom</code></td><td>Fraction of the content height, when there is a middle row. Without one, they split the height by relative size</td><td class="def">0.3</td></tr>
+<tr><td><code>full</code></td><td>The whole content area. Cannot be combined with other regions</td><td class="def"></td></tr>
+</table></div>
+<p>Put <code>size</code> on the component itself (<code>right: {type: chart, size: 2, …}</code>) or on the stack. Regions are separated by the slide's <code>gap</code> (default 0.3 inches).</p>
+
+<h3>Stacks</h3>
+<p>To put several components in one region, use <code>stack</code>. Each item's <code>weight</code> is its share of the region's height. Items are 0.2 inches apart.</p>
+<pre><code>left:
+  size: 1
+  stack:
+    - {type: kpis, weight: 1, items: [...]}
+    - {type: insights, weight: 2, items: [...]}</code></pre>
+<p>You can also group regions under one key: <code>regions: {left: …, right: …}</code>. It does the same thing.</p>
+</section>
+
+<section id="common">
+<h2>Keys every component takes</h2>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>type</code></td><td class="def">required</td><td><code>insights</code>, <code>text</code>, <code>quote</code>, <code>kpis</code>, <code>progress</code>, <code>chart</code>, <code>table</code>, <code>agenda</code>, <code>timeline</code>, <code>cycle</code>, <code>image</code></td></tr>
+<tr><td><code>panel</code></td><td class="def">none</td><td><code>true</code> draws a rounded backdrop in the <code>light</code> colour behind the component. A <a href="#colours">colour</a> uses that colour instead</td></tr>
+<tr><td><code>padding</code></td><td class="def">0.2</td><td>Inches between the panel edge and the component. Only used with <code>panel</code></td></tr>
+<tr><td><code>size</code></td><td class="def">see Regions</td><td>The region's size, when the component fills a region directly</td></tr>
+<tr><td><code>weight</code></td><td class="def">1</td><td>Share of the height, when the component is in a <code>stack</code></td></tr>
+</table></div>
+</section>
+
+<section id="colours">
+<h2>Colours</h2>
+<p>Any option that takes a colour (<code>color</code>, <code>panel</code>, <code>background</code>, a progress bar's <code>color</code>) accepts a theme colour name or a hex code.</p>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Built-in value</th><th>Used for</th></tr>
+<tr><td><code>primary</code></td><td><code>#1F3A5F</code></td><td>Titles, table headers, the title slide background</td></tr>
+<tr><td><code>accent</code></td><td><code>#E07A5F</code></td><td>Highlights, <code>**bold**</code> text, bullets, active steps</td></tr>
+<tr><td><code>text</code></td><td><code>#2B2D42</code></td><td>Body text</td></tr>
+<tr><td><code>muted</code></td><td><code>#6C757D</code></td><td>Labels, footnotes, secondary lines</td></tr>
+<tr><td><code>light</code></td><td><code>#F1F4F8</code></td><td>Card, panel and callout backgrounds</td></tr>
+<tr><td><code>subtle</code></td><td><code>#C5CDD6</code></td><td>What a chart <code>highlight</code> greys out, future steps</td></tr>
+<tr><td><code>positive</code></td><td><code>#2A9D8F</code></td><td>Good KPI deltas, waterfall increases</td></tr>
+<tr><td><code>negative</code></td><td><code>#D1495B</code></td><td>Bad KPI deltas, waterfall decreases</td></tr>
+</table></div>
+<p>Hex codes work with or without <code>#</code>. Change the names' values under <a href="#theme"><code>deck.theme</code></a>.</p>
+<div class="note"><p><strong>Quote hex codes that start with <code>#</code>.</strong> In YAML, <code>color: #FF0000</code> is a comment, so the value is empty. Write <code>color: "#FF0000"</code> or <code>color: FF0000</code>.</p></div>
+</section>
+
+<section id="rich-text">
+<h2>Bold and line breaks</h2>
+<p>Wrap text in double asterisks to make it bold and accent-coloured: <code>"December alone was **$276K**"</code>. This works in titles, subtitles, footnotes, <code>insights</code>, <code>text</code>, <code>quote</code>, KPI labels and notes, timeline, agenda and cycle text, table cells and placeholders.</p>
+<div class="table-wrap"><table>
+<tr><th>Where</th><th>New line</th><th>New paragraph</th></tr>
+<tr><td><code>text</code></td><td>Not supported; a single line break becomes a space</td><td>A blank line</td></tr>
+<tr><td><code>insights</code></td><td>Not supported</td><td>Each item is a paragraph</td></tr>
+<tr><td><code>cycle</code> <code>center</code></td><td><code>\n</code> (in double quotes)</td><td></td></tr>
+<tr><td>Placeholders</td><td><code>\n</code> (in double quotes)</td><td>A list: <code>[line, line]</code></td></tr>
+</table></div>
+<div class="note"><p>Text with a colon followed by a space, or starting with <code>*</code>, <code>[</code>, <code>{</code>, <code>#</code> or <code>&amp;</code>, must be quoted in YAML: <code>- "**Risk:** the pilot is small"</code>.</p></div>
+</section>
+
+<!-- ================================================================== formatting -->
+<section id="formatting">
+<h2>Which format goes where</h2>
+<p>deckgen uses two kinds of format string. Components drawn by deckgen use <strong>Python</strong> formats. Charts are native PowerPoint charts, so they use <strong>Excel</strong> number formats.</p>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>Kind</th><th>Example</th></tr>
+<tr><td><code>kpis</code> → <code>format</code>, <code>delta_format</code></td><td>Python</td><td><code>"${:,.0f}"</code></td></tr>
+<tr><td><code>progress</code> → <code>format</code></td><td>Python</td><td><code>"{:.0%}"</code></td></tr>
+<tr><td><code>table</code> → <code>formats</code></td><td>Python</td><td><code>{revenue: "${:,.0f}"}</code></td></tr>
+<tr><td><code>chart</code> → <code>number_format</code>, <code>axis_format</code>, <code>label_format</code></td><td>Excel</td><td><code>'$#,##0,"K"'</code></td></tr>
+</table></div>
+<p>Without a format, numbers are shown with thousands separators: whole numbers as-is (<code>1,234</code>), decimals to two places (<code>1,234.50</code>). Text is shown unchanged.</p>
+</section>
+
+<section id="python-format">
+<h2>Python formats</h2>
+<p class="lead">For KPI values and deltas, progress bars and table cells.</p>
+<p>The value goes where the <code>{}</code> is. Anything outside the braces is printed as-is, so <code>"${:,.0f}"</code> puts a dollar sign in front and <code>"{:.1f}x"</code> puts an x after. Always quote the format in YAML.</p>
+
+<h3>Cheat sheet</h3>
+<div class="table-wrap"><table>
+<tr><th>Format</th><th>Value</th><th>Shows</th><th>Use for</th></tr>
+<tr><td><code>"{:,}"</code></td><td>1234567</td><td>1,234,567</td><td>Counts</td></tr>
+<tr><td><code>"{:,.0f}"</code></td><td>1234567.89</td><td>1,234,568</td><td>Large numbers, no decimals</td></tr>
+<tr><td><code>"${:,.0f}"</code></td><td>1234567.89</td><td>$1,234,568</td><td>Money</td></tr>
+<tr><td><code>"${:,.2f}"</code></td><td>1234.5</td><td>$1,234.50</td><td>Money with cents</td></tr>
+<tr><td><code>"{:.1f}"</code></td><td>3.14159</td><td>3.1</td><td>One decimal place</td></tr>
+<tr><td><code>"{:.0%}"</code></td><td>0.523</td><td>52%</td><td>Fractions as percentages</td></tr>
+<tr><td><code>"{:.1%}"</code></td><td>0.523</td><td>52.3%</td><td>Percentages with a decimal</td></tr>
+<tr><td><code>"{:+.0%}"</code></td><td>0.523</td><td>+52%</td><td>Changes, with the sign</td></tr>
+<tr><td><code>"{:+,}"</code></td><td>4200</td><td>+4,200</td><td>Changes in counts</td></tr>
+<tr><td><code>"{:.1f}x"</code></td><td>5.391</td><td>5.4x</td><td>Multiples, such as return on spend</td></tr>
+<tr><td><code>"{:.1f}h"</code></td><td>3.46</td><td>3.5h</td><td>Units after the number</td></tr>
+<tr><td><code>"{:.0f} pts"</code></td><td>6.2</td><td>6 pts</td><td>Points</td></tr>
+</table></div>
+
+<h3>How a format is built</h3>
+<p>Inside the braces, after the colon, the parts go in this order. All are optional.</p>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Example</th><th>Meaning</th></tr>
+<tr><td><code>+</code></td><td><code>{:+.0%}</code></td><td>Always show the sign, including <code>+</code> for positive numbers</td></tr>
+<tr><td><code>,</code></td><td><code>{:,}</code></td><td>Thousands separator</td></tr>
+<tr><td><code>.N</code></td><td><code>{:.2f}</code></td><td>Decimal places (with <code>f</code> or <code>%</code>)</td></tr>
+<tr><td><code>f</code></td><td><code>{:.1f}</code></td><td>Fixed-point number</td></tr>
+<tr><td><code>%</code></td><td><code>{:.0%}</code></td><td>Multiply by 100 and add a percent sign</td></tr>
+</table></div>
+
+<div class="note">
+<p><strong><code>%</code> multiplies by 100.</strong> Use it on fractions: 0.52 shows as 52%. If your data already holds 52, use <code>"{:.0f}%"</code> instead.</p>
+<p><strong>Python cannot scale to thousands or millions.</strong> <code>"{:,.0f}K"</code> on 276400 shows <code>276,400K</code>. Store the value in thousands in the data, or type the KPI as a literal (<code>value: "$276K"</code>). Charts <em>can</em> scale, see <a href="#excel-format">Excel number formats</a>.</p>
+<p><strong>Numeric formats fail on text.</strong> <code>format: "{:,}"</code> on a literal such as <code>"Holiday Blitz"</code> or <code>"+4.2%"</code> stops the build. Leave <code>format</code> off for literal text.</p>
+<p><strong>Halves round to even.</strong> <code>"{:.0f}"</code> shows 2.5 as 2 and 3.5 as 4.</p>
+</div>
+
+<h3>KPI deltas</h3>
+<p>The delta is formatted first, then deckgen reads the sign: text starting with <code>-</code> gets ▼, anything else gets ▲. The <code>+</code> or <code>-</code> itself is removed, because the arrow shows the direction. So <code>delta_format: "{:+.0%}"</code> on −0.12 shows <strong>▼ 12%</strong>.</p>
+<p>The colour comes from the direction and <code>higher_is_better</code>: up is <code>positive</code> and down is <code>negative</code>, or the other way round when <code>higher_is_better: false</code>.</p>
+</section>
+
+<section id="excel-format">
+<h2>Excel number formats</h2>
+<p class="lead">For <code>chart</code> → <code>number_format</code>, <code>axis_format</code> and <code>label_format</code>.</p>
+<p>These are the same codes as Excel's <strong>Format Cells → Custom</strong>. <code>number_format</code> sets both the axis and the data labels. <code>axis_format</code> and <code>label_format</code> override one of them. Quote them with single quotes in YAML, so that double quotes inside stay intact.</p>
+<div class="table-wrap"><table>
+<tr><th>Format</th><th>Value</th><th>Shows</th><th>Notes</th></tr>
+<tr><td><code>General</code></td><td>276400</td><td>276400</td><td>Default</td></tr>
+<tr><td><code>'#,##0'</code></td><td>276400</td><td>276,400</td><td>Thousands separator</td></tr>
+<tr><td><code>'$#,##0'</code></td><td>276400</td><td>$276,400</td><td>Money</td></tr>
+<tr><td><code>'$#,##0,"K"'</code></td><td>276400</td><td>$276K</td><td>Each trailing comma divides by 1,000</td></tr>
+<tr><td><code>'$#,##0.0,,"M"'</code></td><td>1250000</td><td>$1.3M</td><td>Two commas divide by 1,000,000</td></tr>
+<tr><td><code>'0%'</code></td><td>0.523</td><td>52%</td><td>Multiplies by 100</td></tr>
+<tr><td><code>'0.0%'</code></td><td>0.523</td><td>52.3%</td><td></td></tr>
+<tr><td><code>'0.0"x"'</code></td><td>5.391</td><td>5.4x</td><td>Text goes in double quotes</td></tr>
+<tr><td><code>'+0%;-0%;0%'</code></td><td>−0.12</td><td>-12%</td><td>Positive; negative; zero</td></tr>
+<tr><td><code>'#,##0;(#,##0)'</code></td><td>−4200</td><td>(4,200)</td><td>Accounting-style negatives</td></tr>
+</table></div>
+<p>A <code>stacked_column_100</code> or <code>stacked_bar_100</code> chart's axis defaults to <code>0%</code>. A waterfall's data labels get a <code>+</code> or <code>-</code> added for increases and decreases, and hide zeros.</p>
+</section>
+
+<!-- ================================================================== data -->
+<section id="data">
+<h2>Data sources</h2>
+<p>Name each source under <code>data</code>. A source is a CSV path, relative to the config, or a list of rows written inline.</p>
+<pre><code>data:
+  monthly: ../data/monthly_sales.csv
+  targets:
+    - {region: North, target: 400000}
+    - {region: South, target: 250000}</code></pre>
+<p>In CSVs, cells that look like numbers become numbers, and thousands separators are allowed (<code>1,234</code>). Everything else stays text. The first row is the header.</p>
+<div class="note"><p><strong>Percent signs and currency symbols make a cell text.</strong> <code>12%</code> and <code>$400</code> are not numbers, so they cannot be summed, charted or formatted. Store <code>0.12</code> and <code>400</code>, and add the symbol with a format.</p></div>
+</section>
+
+<section id="queries">
+<h2>Queries</h2>
+<p>Charts, tables and computed metrics can filter, group, sort and trim a source before using it. The keys are applied in this order.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Example</th><th>Meaning</th></tr>
+<tr><td><code>where</code></td><td><code>{region: West}</code><br><code>{region: [West, North]}</code></td><td>Keep rows that match every column given. A list matches any of its values</td></tr>
+<tr><td><code>group_by</code></td><td><code>region</code><br><code>[region, quarter]</code></td><td>One row per group. Number columns are combined with <code>agg</code>; other text columns are dropped</td></tr>
+<tr><td><code>agg</code></td><td><code>sum</code></td><td>How <code>group_by</code> combines numbers: <code>sum</code> (default), <code>mean</code>, <code>count</code> (rows per group), <code>min</code>, <code>max</code></td></tr>
+<tr><td><code>sort_by</code></td><td><code>revenue</code></td><td>Sort by one column, smallest first</td></tr>
+<tr><td><code>descending</code></td><td><code>true</code></td><td>Sort largest first</td></tr>
+<tr><td><code>limit</code></td><td><code>5</code></td><td>Keep the first N rows. With <code>sort_by</code> and <code>descending</code>, this is the top N</td></tr>
+</table></div>
+<pre><code># top five campaigns by revenue, as a bar chart
+{type: chart, kind: bar, data: campaigns, x: campaign, y: revenue,
+ sort_by: revenue, descending: true, limit: 5}</code></pre>
+<p>Groups and categories keep the order in which they first appear in the data, unless you sort.</p>
+</section>
+
+<section id="metrics">
+<h2>Computed metrics</h2>
+<p>A KPI <code>value</code> or <code>delta</code>, and a progress bar's <code>value</code>, <code>max</code> or <code>target</code>, can be computed from the data instead of typed in. This keeps the number correct when the data changes.</p>
+<pre><code>value: {source: monthly, column: revenue, agg: sum}</code></pre>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>source</code></td><td class="def">required</td><td>Data source name</td></tr>
+<tr><td><code>column</code></td><td class="def">required</td><td>Column to compute from</td></tr>
+<tr><td><code>agg</code></td><td class="def">sum</td><td>How to turn the column into one number, see below</td></tr>
+<tr><td><code>group_agg</code></td><td class="def">sum</td><td>With <code>group_by</code>: how rows are combined within each group, before <code>agg</code></td></tr>
+<tr><td><code>where</code>, <code>group_by</code>, <code>sort_by</code>, <code>descending</code>, <code>limit</code></td><td></td><td>The <a href="#queries">query keys</a>, applied first</td></tr>
+</table></div>
+
+<h3><code>agg</code> values</h3>
+<div class="table-wrap"><table>
+<tr><th>agg</th><th>Result</th></tr>
+<tr><td><code>sum</code></td><td>Total</td></tr>
+<tr><td><code>mean</code></td><td>Average</td></tr>
+<tr><td><code>count</code></td><td>Number of rows</td></tr>
+<tr><td><code>min</code>, <code>max</code></td><td>Smallest, largest</td></tr>
+<tr><td><code>first</code>, <code>last</code></td><td>The value in the first or last row</td></tr>
+<tr><td><code>growth</code></td><td>Relative % change from the first row to the last: <code>(last − first) / first</code>, as a fraction. 100 → 150 gives 0.5, which <code>"{:+.0%}"</code> shows as <strong>+50%</strong></td></tr>
+</table></div>
+<div class="note">
+<p><strong><code>first</code>, <code>last</code> and <code>growth</code> follow row order.</strong> They use the rows as they appear in the CSV, or as sorted by <code>sort_by</code>. Make sure the data is in time order.</p>
+<p><strong><code>growth</code> fails if the first value is 0</strong>, because it divides by it.</p>
+<p>There is no <code>agg</code> for the absolute difference (last − first). Type it as a literal: <code>delta: "+$94,400"</code>.</p>
+</div>
+
+<h3>Examples</h3>
+<pre><code># total for one region
+value: {source: regional, column: revenue, where: {region: West}}
+
+# December vs January, as a percentage
+delta: {source: monthly, column: revenue, agg: growth}
+
+# Q4 total vs Q1 total: sum each quarter, then compare the first and last quarters
+delta: {source: regional, column: revenue, group_by: quarter, agg: growth}
+
+# change in the monthly average response time
+delta: {source: support, column: first_response_hours, group_by: month, group_agg: mean, agg: growth}
+
+# best campaign's return on spend
+value: {source: campaigns, column: roas, agg: max}</code></pre>
+</section>
+
+<!-- ================================================================== components -->
+<section id="c-insights">
+<h2><code>insights</code> <span class="tag">text</span></h2>
+<p>Bullet points: the takeaways that explain a chart. Keep to about three short items.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>List of strings. <code>**text**</code> is bold in the accent colour</td></tr>
+<tr><td><code>heading</code></td><td class="def">none</td><td>Bold line above the items, 2pt larger than them</td></tr>
+<tr><td><code>style</code></td><td class="def">bullets</td><td><code>bullets</code>, <code>numbered</code> (1. 2. 3.), or <code>callout</code> (shaded box with an accent bar down the left, text centred vertically)</td></tr>
+<tr><td><code>font_size</code></td><td class="def">16</td><td>Item size in points</td></tr>
+<tr><td><code>spacing</code></td><td class="def">10</td><td>Space after each item, in points</td></tr>
+</table></div>
+<pre><code>right:
+  type: insights
+  heading: Why it matters
+  panel: true
+  items:
+    - Revenue ran **above target** every month except February
+    - "Q4 accelerated: December alone was **$276K**"
+
+bottom:
+  type: insights
+  style: callout
+  items: ["**Decision needed:** move Trade Show budget into retargeting."]</code></pre>
+</section>
+
+<section id="c-text">
+<h2><code>text</code> <span class="tag">text</span></h2>
+<p>Free text, such as a paragraph of context or a large statement.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>text</code></td><td class="def">required</td><td>The text. A blank line starts a new paragraph; a single line break becomes a space</td></tr>
+<tr><td><code>align</code></td><td class="def">left</td><td><code>left</code>, <code>center</code>, <code>right</code></td></tr>
+<tr><td><code>valign</code></td><td class="def">top</td><td><code>top</code>, <code>middle</code>, <code>bottom</code></td></tr>
+<tr><td><code>font_size</code></td><td class="def">16</td><td>Points</td></tr>
+<tr><td><code>bold</code></td><td class="def">false</td><td></td></tr>
+<tr><td><code>italic</code></td><td class="def">false</td><td></td></tr>
+<tr><td><code>color</code></td><td class="def">text</td><td>A <a href="#colours">colour</a></td></tr>
+</table></div>
+<pre><code>full:
+  type: text
+  valign: middle
+  align: center
+  font_size: 32
+  color: primary
+  text: |
+    One customer in three now buys **Pro**.
+
+    Two years ago it was one in ten.</code></pre>
+</section>
+
+<section id="c-quote">
+<h2><code>quote</code> <span class="tag">text</span></h2>
+<p>A pull quote with a large quotation mark and an attribution.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>text</code></td><td class="def">required</td><td>The quote, in italics</td></tr>
+<tr><td><code>author</code></td><td class="def">none</td><td>Bold line under the quote (18pt)</td></tr>
+<tr><td><code>role</code></td><td class="def">none</td><td>Muted line under the author (14pt)</td></tr>
+<tr><td><code>font_size</code></td><td class="def">30</td><td>Quote size</td></tr>
+<tr><td><code>color</code></td><td class="def">primary</td><td>Quote colour</td></tr>
+<tr><td><code>valign</code></td><td class="def">middle</td><td><code>top</code>, <code>middle</code>, <code>bottom</code></td></tr>
+</table></div>
+<pre><code>full:
+  type: quote
+  text: The new onboarding cut our setup time from a week to an afternoon.
+  author: Dana Ruiz
+  role: Head of Operations, Northwind</code></pre>
+</section>
+
+<section id="c-kpis">
+<h2><code>kpis</code> <span class="tag">cards</span></h2>
+<p>A row of metric cards of equal width, one per item.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>One card per item, see below</td></tr>
+<tr><td><code>style</code></td><td class="def">flat</td><td><code>flat</code> (tinted rounded card), <code>accent</code> (square card with an accent bar down the left), <code>outline</code> (pale card with a thin border), <code>dark</code> (filled with the primary colour, white text)</td></tr>
+<tr><td><code>value_size</code></td><td class="def">30</td><td>Size of the big number on every card</td></tr>
+<tr><td><code>gap</code></td><td class="def">0.25</td><td>Inches between cards</td></tr>
+</table></div>
+
+<h3>Each item</h3>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>label</code></td><td class="def">""</td><td>Small text above the value (12pt)</td></tr>
+<tr><td><code>value</code></td><td class="def">required</td><td>A literal (<code>187.4</code>, <code>"Holiday Blitz"</code>) or a <a href="#metrics">computed metric</a></td></tr>
+<tr><td><code>format</code></td><td class="def">auto</td><td><a href="#python-format">Python format</a> for the value</td></tr>
+<tr><td><code>delta</code></td><td class="def">none</td><td>Change line under the value, literal or computed. See <a href="#python-format">KPI deltas</a> for how the arrow and colour are chosen</td></tr>
+<tr><td><code>delta_format</code></td><td class="def">auto</td><td>Python format for the delta, e.g. <code>"{:+.0%}"</code></td></tr>
+<tr><td><code>delta_label</code></td><td class="def">none</td><td>Text after the delta, e.g. <code>vs. plan</code></td></tr>
+<tr><td><code>higher_is_better</code></td><td class="def">true</td><td><code>false</code> shows increases in the <code>negative</code> colour, e.g. for costs or response times</td></tr>
+<tr><td><code>value_size</code></td><td class="def">row's</td><td>Overrides the row's <code>value_size</code> for this card</td></tr>
+<tr><td><code>icon</code></td><td class="def">none</td><td>A glyph in an accent circle in the top-right corner: any Unicode symbol, e.g. <code>"★"</code>, <code>"⏱"</code>, <code>"$"</code>, <code>"↗"</code></td></tr>
+<tr><td><code>note</code></td><td class="def">none</td><td>A small line at the bottom of the card</td></tr>
+</table></div>
+<pre><code>top:
+  type: kpis
+  style: accent
+  items:
+    - label: Revenue
+      value: {source: monthly, column: revenue, agg: sum}
+      format: "${:,.0f}"
+      delta: {source: monthly, column: revenue, agg: growth}
+      delta_format: "{:+.0%}"
+      delta_label: Jan → Dec
+      icon: "$"
+    - label: Avg. first response
+      value: {source: support, column: first_response_hours, agg: mean}
+      format: "{:.1f}h"
+      delta: "-18%"
+      higher_is_better: false        # a drop is good news, so it shows in green
+    - label: Top campaign
+      value: Holiday Blitz           # text: no format
+      note: 5.4x return on spend</code></pre>
+</section>
+
+<section id="c-progress">
+<h2><code>progress</code> <span class="tag">cards</span></h2>
+<p>Horizontal bars, one row per item: label, bar, value. Good for “who cleared the bar?”.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>One bar per item, see below</td></tr>
+<tr><td><code>max</code></td><td class="def">1</td><td>Value of a full bar, so fractions work as-is. Can be a computed metric</td></tr>
+<tr><td><code>format</code></td><td class="def">auto</td><td><a href="#python-format">Python format</a> for the values, e.g. <code>"{:.0%}"</code></td></tr>
+<tr><td><code>color</code></td><td class="def">primary</td><td>Bar colour</td></tr>
+<tr><td><code>font_size</code></td><td class="def">15</td><td>Label size; the value is 2pt larger</td></tr>
+<tr><td><code>label_width</code></td><td class="def">0.3</td><td>Share of the width used by labels</td></tr>
+<tr><td><code>value_width</code></td><td class="def">1.2</td><td>Inches for the value on the right</td></tr>
+<tr><td><code>bar_height</code></td><td class="def">0.3</td><td>Bar thickness in inches, capped at 45% of the row</td></tr>
+<tr><td><code>gap</code></td><td class="def">0.1</td><td>Inches between rows</td></tr>
+</table></div>
+<h3>Each item</h3>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Meaning</th></tr>
+<tr><td><code>label</code></td><td>Text on the left</td></tr>
+<tr><td><code>value</code></td><td>Literal or computed. Bars are clamped between empty and full</td></tr>
+<tr><td><code>max</code></td><td>Overrides the component's <code>max</code></td></tr>
+<tr><td><code>target</code></td><td>A dark marker line across the bar. Literal or computed</td></tr>
+<tr><td><code>format</code></td><td>Overrides the component's <code>format</code></td></tr>
+<tr><td><code>highlight</code></td><td><code>true</code> draws this bar in the accent colour</td></tr>
+<tr><td><code>color</code></td><td>Colour for this bar; wins over <code>highlight</code></td></tr>
+</table></div>
+<pre><code>full:
+  type: progress
+  max: 6
+  format: "{:.1f}x"
+  items:
+    - {label: Webinar Series, value: 5.39, target: 4, highlight: true}
+    - {label: Trade Show, value: 2.2, target: 4}
+    - label: West revenue vs. target
+      value: {source: regional, column: revenue, where: {region: West}}
+      max: 600000
+      format: "${:,.0f}"</code></pre>
+</section>
+
+<section id="c-chart">
+<h2><code>chart</code> <span class="tag">data</span></h2>
+<p>A native PowerPoint chart. It stays editable: right-click → Edit Data.</p>
+
+<h3>Data</h3>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>kind</code></td><td class="def">column</td><td>See <a href="#chart-kinds">chart kinds</a></td></tr>
+<tr><td><code>data</code></td><td class="def">required</td><td>A source name, or inline: <code>{categories: [Q1, Q2], series: {Revenue: [10, 12]}}</code>. Query keys are ignored for inline data</td></tr>
+<tr><td><code>x</code></td><td class="def">required</td><td>Category column (the x values for <code>scatter</code>)</td></tr>
+<tr><td><code>y</code></td><td class="def">required</td><td>One value column, or a list. Each column becomes a series</td></tr>
+<tr><td><code>series_by</code></td><td class="def">none</td><td>Split one <code>y</code> column into a series per value of this column (long data → wide). For <code>scatter</code>, groups points into coloured series</td></tr>
+<tr><td><code>series_names</code></td><td class="def">column names</td><td>Rename series: <code>{revenue: "Revenue ($)"}</code>. Without it, <code>first_response</code> becomes “First Response”</td></tr>
+<tr><td><code>where</code>, <code>group_by</code>, <code>agg</code>, <code>sort_by</code>, <code>descending</code>, <code>limit</code></td><td></td><td>The <a href="#queries">query keys</a></td></tr>
+</table></div>
+<pre><code># long data (one row per region per quarter) -> one line per region
+{type: chart, kind: line, data: regional, group_by: [quarter, region],
+ x: quarter, y: revenue, series_by: region}</code></pre>
+
+<h3>Look</h3>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>title</code></td><td class="def">none</td><td>Chart title, 13pt bold</td></tr>
+<tr><td><code>legend</code></td><td class="def">auto</td><td><code>bottom</code>, <code>top</code>, <code>left</code>, <code>right</code>, <code>none</code>. Default is <code>bottom</code> when there is more than one series, or for pie and doughnut; otherwise <code>none</code>. Always <code>none</code> by default with <code>direct_labels</code> or <code>waterfall</code></td></tr>
+<tr><td><code>data_labels</code></td><td class="def">false</td><td>Show values on the chart (10pt). <code>true</code> by default for <code>waterfall</code></td></tr>
+<tr><td><code>number_format</code></td><td class="def">General</td><td><a href="#excel-format">Excel format</a> for the axis, the labels and the embedded data</td></tr>
+<tr><td><code>axis_format</code></td><td class="def">number_format</td><td>Excel format for the value axis only</td></tr>
+<tr><td><code>label_format</code></td><td class="def">number_format</td><td>Excel format for the data labels only</td></tr>
+<tr><td><code>show_percentage</code></td><td class="def">false</td><td>Pie and doughnut labels show each slice's share instead of its value</td></tr>
+<tr><td><code>gridlines</code></td><td class="def">true</td><td>Horizontal gridlines</td></tr>
+<tr><td><code>gap_width</code></td><td class="def">60</td><td>Bar and column kinds: space between bars, as a % of bar width</td></tr>
+<tr><td><code>axis_min</code>, <code>axis_max</code></td><td class="def">automatic</td><td>Fix the value axis range, so side-by-side charts share a scale</td></tr>
+<tr><td><code>font_size</code></td><td class="def">11</td><td>Points</td></tr>
+</table></div>
+
+<h3>Emphasis</h3>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>highlight</code></td><td class="def">none</td><td>A name or a list. With one series, names <em>categories</em> (bars, columns, pie slices); with several, names <em>series</em>. Those are drawn in the accent colour and the rest in <code>subtle</code> grey</td></tr>
+<tr><td><code>direct_labels</code></td><td class="def">false</td><td><code>line</code> and <code>combo</code>: name each line at its last point instead of a legend</td></tr>
+<tr><td><code>reference</code></td><td class="def">none</td><td><code>{value: 200000, label: "$200K goal"}</code>: a dashed horizontal line labelled at its end. <code>label</code> defaults to “Target”. Works with <code>column</code>, <code>stacked_column</code>, <code>line</code>, <code>area</code> and <code>combo</code></td></tr>
+<tr><td><code>line</code></td><td class="def">none</td><td><code>combo</code> only: which <code>y</code> columns to draw as lines over the columns</td></tr>
+<tr><td><code>totals</code></td><td class="def">none</td><td><code>waterfall</code> only: categories whose value is a running total, drawn as full bars. The other values are changes</td></tr>
+</table></div>
+
+<h3 id="chart-kinds">Chart kinds</h3>
+<div class="table-wrap"><table>
+<tr><th>kind</th><th>Draws</th><th>Notes</th></tr>
+<tr><td><code>column</code></td><td>Vertical bars, side by side</td><td>The default</td></tr>
+<tr><td><code>stacked_column</code></td><td>Vertical bars, stacked</td><td>With <code>data_labels</code>, label colour adapts to each fill</td></tr>
+<tr><td><code>stacked_column_100</code></td><td>Stacked to 100%</td><td>Axis shows percentages by default</td></tr>
+<tr><td><code>bar</code></td><td>Horizontal bars</td><td>First row at the top. Good for ranked lists with long names</td></tr>
+<tr><td><code>stacked_bar</code>, <code>stacked_bar_100</code></td><td>Horizontal, stacked</td><td></td></tr>
+<tr><td><code>line</code></td><td>Lines with markers</td><td>Use <code>direct_labels</code> instead of a legend</td></tr>
+<tr><td><code>area</code></td><td>Filled area</td><td></td></tr>
+<tr><td><code>pie</code>, <code>doughnut</code></td><td>Slices of the first series</td><td>Keep to five slices or fewer. <code>show_percentage</code> for shares</td></tr>
+<tr><td><code>scatter</code></td><td>Points at (<code>x</code>, <code>y</code>)</td><td><code>x</code> must be numeric; <code>y</code> is one column. <code>series_by</code> colours groups. No <code>reference</code></td></tr>
+<tr><td><code>combo</code></td><td>Columns plus lines</td><td>Columns named in <code>line</code> are drawn as lines</td></tr>
+<tr><td><code>waterfall</code></td><td>A bridge from one total to another</td><td>One <code>y</code> column. Increases in <code>positive</code>, decreases in <code>negative</code>, <code>totals</code> in <code>primary</code></td></tr>
+</table></div>
+<pre><code># one bar picked out, with a goal line
+{type: chart, kind: column, data: monthly, x: month, y: revenue,
+ highlight: Dec, reference: {value: 200000, label: $200K goal},
+ number_format: '$#,##0,"K"', data_labels: true, gridlines: false}
+
+# columns with the target as a line
+{type: chart, kind: combo, data: monthly, x: month, y: [revenue, target], line: [target]}
+
+# a bridge: Q1 and Q4 are totals, the rows between are changes
+{type: chart, kind: waterfall, data: bridge, x: step, y: change, totals: [Q1, Q4]}
+
+# share of revenue by channel
+{type: chart, kind: doughnut, data: channels, x: channel, y: share,
+ data_labels: true, show_percentage: true}</code></pre>
+</section>
+
+<section id="c-table">
+<h2><code>table</code> <span class="tag">data</span></h2>
+<p>A table from a data source, with a header row in the primary colour and banded rows.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>data</code></td><td class="def">required</td><td>Source name (inline <code>{categories, series}</code> is not supported here)</td></tr>
+<tr><td><code>columns</code></td><td class="def">all</td><td>A list of columns, or <code>{column: Header}</code> to rename them. Without renaming, <code>first_response</code> becomes “First Response”</td></tr>
+<tr><td><code>formats</code></td><td class="def">auto</td><td><a href="#python-format">Python format</a> per column: <code>{revenue: "${:,.0f}", share: "{:.0%}"}</code></td></tr>
+<tr><td><code>highlight_top</code></td><td class="def">0</td><td>Make the first N rows bold</td></tr>
+<tr><td><code>font_size</code></td><td class="def">12</td><td>Points</td></tr>
+<tr><td><code>where</code>, <code>group_by</code>, <code>agg</code>, <code>sort_by</code>, <code>descending</code>, <code>limit</code></td><td></td><td>The <a href="#queries">query keys</a></td></tr>
+</table></div>
+<p>Number columns are right-aligned. Rows are at most 0.45 inches tall and shrink to fit the region, but the text does not, so use <code>limit</code> or a smaller <code>font_size</code> for long tables.</p>
+<pre><code>bottom:
+  type: table
+  data: support
+  group_by: region
+  columns: {region: Region, tickets: Tickets, escalations: Escalations}
+  formats: {tickets: "{:,}"}
+  sort_by: escalations
+  descending: true
+  highlight_top: 1</code></pre>
+</section>
+
+<section id="c-agenda">
+<h2><code>agenda</code> <span class="tag">sequence</span></h2>
+<p>Numbered chapters. Repeat it with a different <code>active</code> before each section to show progress through the deck.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>Strings (the title), or <code>{title, text, number}</code>. <code>number</code> defaults to 01, 02, …</td></tr>
+<tr><td><code>active</code></td><td class="def">none</td><td>Chapter number to highlight; the others are dimmed</td></tr>
+<tr><td><code>layout</code></td><td class="def">rows</td><td><code>rows</code> (stacked) or <code>columns</code> (side by side)</td></tr>
+<tr><td><code>font_size</code></td><td class="def">20</td><td>Title size; the description is 6pt smaller</td></tr>
+<tr><td><code>number_size</code></td><td class="def">auto</td><td>Size of the numbers. 44 in columns; in rows, up to 40 depending on row height</td></tr>
+<tr><td><code>gap</code></td><td class="def">0.15</td><td>Inches between chapters</td></tr>
+</table></div>
+<pre><code>full:
+  type: agenda
+  active: 2
+  items:
+    - {title: Growth, text: "Revenue, targets and the shape of the year"}
+    - {title: Product & regions, text: Where the growth came from}
+    - Customer experience</code></pre>
+</section>
+
+<section id="c-timeline">
+<h2><code>timeline</code> <span class="tag">sequence</span></h2>
+<p>Steps from left to right: a plan, a process or a history.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>Strings (the label), or <code>{label, title, text}</code>. The label sits inside the chevron or above the dot; title and text go below</td></tr>
+<tr><td><code>style</code></td><td class="def">chevron</td><td><code>chevron</code> (arrow band) or <code>dots</code> (dots on a line)</td></tr>
+<tr><td><code>active</code></td><td class="def">none</td><td>Current step, in the accent colour. Earlier steps show as done, later steps greyed</td></tr>
+<tr><td><code>font_size</code></td><td class="def">16</td><td>Title size; the text is 3pt smaller</td></tr>
+<tr><td><code>label_size</code></td><td class="def">15</td><td><code>chevron</code> only: label size inside the chevron. Dot labels are 13pt</td></tr>
+<tr><td><code>band_height</code></td><td class="def">up to 0.8</td><td><code>chevron</code> only: chevron height in inches (default 0.8, or 35% of the region if smaller). Raise it with <code>label_size</code> and <code>font_size</code> when there is room to fill</td></tr>
+</table></div>
+<pre><code>top:
+  type: timeline
+  size: 0.45
+  active: 1
+  items:
+    - {label: Q1, title: Pilot, text: "Two regions, **10%** of spend"}
+    - {label: Q2, title: Expand, text: All regions}
+    - {label: Q3, title: Optimise, text: Shift spend to the best channels}</code></pre>
+</section>
+
+<section id="c-cycle">
+<h2><code>cycle</code> <span class="tag">sequence</span></h2>
+<p>A repeating loop: steps around a ring, clockwise from the top, with arrows between them.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>items</code></td><td class="def">required</td><td>Strings (the title), or <code>{title, text, icon}</code>. Without an <code>icon</code>, the node shows its number</td></tr>
+<tr><td><code>center</code></td><td class="def">none</td><td>Text in the middle of the ring. <code>"\n"</code> breaks the line</td></tr>
+<tr><td><code>center_size</code></td><td class="def">20</td><td>Size of the centre text</td></tr>
+<tr><td><code>active</code></td><td class="def">none</td><td>Step to highlight</td></tr>
+<tr><td><code>font_size</code></td><td class="def">16</td><td>Step title size; the text is 3pt smaller</td></tr>
+<tr><td><code>radius</code></td><td class="def">0.2</td><td>Ring radius as a fraction of the region's width (capped so the labels fit vertically)</td></tr>
+<tr><td><code>node_size</code></td><td class="def">auto</td><td>Diameter of the step circles in inches (up to 0.95)</td></tr>
+<tr><td><code>label_width</code></td><td class="def">fits</td><td>Width of each step's label in inches (up to 2.8)</td></tr>
+<tr><td><code>label_height</code></td><td class="def">0.8</td><td>Height of the labels above and below the ring, in inches</td></tr>
+</table></div>
+<pre><code>left:
+  type: cycle
+  center: "Customer\nlifecycle"
+  active: 3
+  items:
+    - {title: Discover, text: Ads and search, icon: "★"}
+    - {title: Trial, text: 14 days free}
+    - {title: Adopt, text: First project live}
+    - {title: Expand, text: More seats}</code></pre>
+</section>
+
+<section id="c-image">
+<h2><code>image</code> <span class="tag">media</span></h2>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>path</code></td><td class="def">required</td><td>Image file, relative to the config</td></tr>
+</table></div>
+<p>The image fills the region's height and keeps its proportions, starting at the left edge. A wide image in a narrow region runs past the right edge, so give it a region with the right shape. In a template's picture placeholder, the image is cropped to fill the placeholder instead.</p>
+<pre><code>right: {type: image, path: ../images/product.png}</code></pre>
+</section>
+
+<!-- ================================================================== deck and slides -->
+<section id="deck">
+<h2><code>deck</code></h2>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>title</code>, <code>author</code></td><td class="def">""</td><td>Written to the file's properties. <code>author</code> also appears on built-in title slides</td></tr>
+<tr><td><code>template</code></td><td class="def">none</td><td>Brand template name, a file in <code>templates/</code> (extension optional). See the README's “Brand templates”</td></tr>
+<tr><td><code>templates_dir</code></td><td class="def">none</td><td>Extra folder to search for templates, relative to the config</td></tr>
+<tr><td><code>date</code></td><td class="def">this month</td><td>Date on title slides, e.g. “OCTOBER 2026”</td></tr>
+<tr><td><code>theme</code></td><td class="def">built-in</td><td>Colour and font overrides, see <a href="#theme">theme</a></td></tr>
+<tr><td><code>footer</code></td><td class="def">none</td><td>Built-in look: <code>{chapter: true}</code> shows the current section title in the footer; <code>{progress: true}</code> draws a progress bar along the bottom edge</td></tr>
+<tr><td><code>decor</code></td><td class="def">true</td><td>Built-in look: decorative rings on title and closing slides</td></tr>
+</table></div>
+<p>Templates are searched for in <code>templates_dir</code>, then <code>templates/</code> next to the config, then <code>templates/</code> one level up, then <code>./templates</code>.</p>
+</section>
+
+<section id="theme">
+<h2><code>theme</code></h2>
+<p>Set under <code>deck.theme</code>. Every key is optional; an unknown key stops the build.</p>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>font</code></td><td class="def">Calibri</td><td>Font for all text and charts</td></tr>
+<tr><td><code>primary</code>, <code>accent</code>, <code>text</code>, <code>muted</code>, <code>light</code>, <code>subtle</code>, <code>positive</code>, <code>negative</code></td><td class="def">see <a href="#colours">Colours</a></td><td>Hex colours</td></tr>
+<tr><td><code>palette</code></td><td class="def">7 colours</td><td>Chart series colours, in order. Repeats when there are more series</td></tr>
+</table></div>
+<pre><code>deck:
+  theme:
+    primary: "#0B3D2E"
+    accent: "#F2A541"
+    font: Aptos
+    palette: ["0B3D2E", "F2A541", "3D8BD3", "81B29A"]</code></pre>
+<p>With a brand template, colours are read from the template's theme first, then the profile's <code>theme</code>, then <code>deck.theme</code>. Later ones win.</p>
+</section>
+
+<section id="defaults">
+<h2><code>defaults</code></h2>
+<p>Options applied to every component of a type. Anything set on the component itself wins.</p>
+<pre><code>defaults:
+  chart: {font_size: 11, gridlines: false}
+  table: {font_size: 11}
+  insights: {font_size: 15}
+  kpis: {style: accent}</code></pre>
+</section>
+
+<section id="slides">
+<h2>Slides</h2>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Slide types</th><th>Meaning</th></tr>
+<tr><td><code>type</code></td><td>all</td><td><code>title</code>, <code>section</code>, <code>content</code> (default), <code>closing</code></td></tr>
+<tr><td><code>title</code>, <code>subtitle</code></td><td>all</td><td>Slide title (28pt on content slides) and an optional line under it</td></tr>
+<tr><td><code>left</code> <code>center</code> <code>right</code> <code>top</code> <code>bottom</code> <code>full</code></td><td>content</td><td><a href="#regions">Regions</a>, each holding one component or a <code>stack</code></td></tr>
+<tr><td><code>regions</code></td><td>content</td><td>The region keys, grouped under one key</td></tr>
+<tr><td><code>gap</code></td><td>content</td><td>Inches between regions (default 0.3)</td></tr>
+<tr><td><code>source</code></td><td>content</td><td>Footnote, shown as “Source: …”</td></tr>
+<tr><td><code>notes</code></td><td>all</td><td>Speaker notes</td></tr>
+<tr><td><code>skip</code></td><td>all</td><td><code>true</code> leaves the slide out</td></tr>
+<tr><td><code>font_size</code></td><td>title, section, closing</td><td>Title size (default 40; built-in look only)</td></tr>
+<tr><td><code>eyebrow</code></td><td>all (built-in look)</td><td>Small uppercase kicker above the title, e.g. <code>Chapter 02</code></td></tr>
+<tr><td><code>background</code></td><td>all (built-in look)</td><td>A <a href="#colours">colour</a>. On a dark colour, text turns white and cards become a tint of the background. Defaults: <code>primary</code> for title and closing, <code>light</code> for section, white for content</td></tr>
+<tr><td><code>number</code></td><td>section (built-in look)</td><td>Large faint numeral on the right, e.g. <code>"02"</code></td></tr>
+<tr><td><code>tag</code></td><td>content</td><td>Chapter label, in a template's tag box or in the footer with <code>deck.footer.chapter</code>. Defaults to the latest section title</td></tr>
+<tr><td><code>layout</code></td><td>all (template only)</td><td>Use this template layout instead of the profile's default</td></tr>
+<tr><td><code>placeholders</code></td><td>all (template only)</td><td>Fill the layout's numbered boxes, see <a href="#placeholders">Placeholders</a></td></tr>
+<tr><td><code>date</code></td><td>title</td><td>Overrides <code>deck.date</code> for this slide</td></tr>
+</table></div>
+<p>Any other key stops the build with a list of the valid ones. This catches typos such as <code>subtitel</code>.</p>
+</section>
+
+<!-- ================================================================== templates -->
+<section id="placeholders">
+<h2>Placeholders</h2>
+<p>With a brand template, <code>placeholders:</code> fills a layout's boxes by number. Find the numbers with <code>uv run deckgen layouts "&lt;template&gt;"</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Value</th><th>Result</th></tr>
+<tr><td><code>"text"</code></td><td>Text with the template's styling. <code>\n</code> starts a new line</td></tr>
+<tr><td><code>[line, line]</code></td><td>One paragraph per item, with the template's bullet style</td></tr>
+<tr><td><code>{text: …, font_size: 14}</code></td><td>Styled text. Also <code>bold</code>, <code>italic</code>, <code>color</code>, <code>align</code>. Only what you set is overridden</td></tr>
+<tr><td><code>{type: chart, …}</code> (any component)</td><td>The component, drawn where the placeholder sits</td></tr>
+<tr><td><code>{type: image, path: …}</code> in a picture placeholder</td><td>The image, cropped to fill the placeholder</td></tr>
+</table></div>
+<pre><code>- title: Revenue beat target
+  layout: Diagram/Chart with Text
+  placeholders:
+    25: {text: "Revenue beat target in **11 of 12** months", font_size: 20}
+    26: [First point, Second point]
+    27: {type: chart, kind: column, data: monthly, x: month, y: revenue}</code></pre>
+<p>Placeholders you leave empty are removed, so no “Click to add text” prompts are left behind.</p>
+</section>
+
+<section id="profile">
+<h2>Template profile</h2>
+<p><code>templates/&lt;name&gt;.yaml</code>, next to the template, sets the default layout per slide type, which placeholder holds each role, and where regions go.</p>
+<pre><code>slides:                                  # title, section, content, closing
+  title:
+    layout: Presentation Title Cool Gray # a name from `deckgen layouts`
+    title: 10                            # placeholder number per role
+    subtitle: 11
+    date: 12
+  content:
+    layout: Content Slide – Title Only
+    title: 22
+    tag: 21
+content_area: [0.44, 1.6, 12.47, 5.1]   # x, y, width, height in inches
+theme:                                   # overrides colours read from the template
+  palette: ["1F4456", "E8542C", "448790"]</code></pre>
+<div class="table-wrap"><table>
+<tr><th>Key</th><th>Meaning</th></tr>
+<tr><td><code>slides.&lt;type&gt;.layout</code></td><td>Layout name. Matching ignores case, extra spaces and <code>–</code> vs <code>-</code></td></tr>
+<tr><td><code>slides.&lt;type&gt;.title</code> / <code>subtitle</code> / <code>date</code> / <code>tag</code></td><td>Placeholder number for that role</td></tr>
+<tr><td><code>content_area</code></td><td>Where regions are laid out. Without it, the space between the title and any footer bar</td></tr>
+<tr><td><code>theme</code></td><td>Same keys as <a href="#theme"><code>deck.theme</code></a></td></tr>
+</table></div>
+<p>Without a profile, layouts are guessed from names such as “Title Slide”, “Section Header”, “Title Only” and “Thank You”.</p>
+</section>
+
+<!-- ================================================================== help -->
+<section id="errors">
+<h2>Errors and fixes</h2>
+<div class="table-wrap"><table>
+<tr><th>Message contains</th><th>Fix</th></tr>
+<tr><td>is not valid YAML</td><td>Check indentation: every slide's keys must line up. Quote text containing <code>: </code> or starting with <code>*</code></td></tr>
+<tr><td>unknown key(s)</td><td>A typo in a slide key; the message lists the valid ones</td></tr>
+<tr><td>unknown region(s)</td><td>Use <code>left</code>, <code>center</code>, <code>right</code>, <code>top</code>, <code>bottom</code> or <code>full</code></td></tr>
+<tr><td>'full' cannot be combined</td><td>Use <code>full</code> alone, or switch to other regions</td></tr>
+<tr><td>top/bottom sizes leave no room</td><td>Lower the <code>size</code> of <code>top</code> and <code>bottom</code>; together they must be well under 1</td></tr>
+<tr><td>content slide has no regions</td><td>Add a region, or make it a <code>section</code> slide</td></tr>
+<tr><td>unknown component type</td><td>Check <code>type:</code>; the message lists the valid ones</td></tr>
+<tr><td>unknown data source</td><td>The name isn't under <code>data:</code></td></tr>
+<tr><td>column(s) … not in</td><td>A column name is wrong; the message lists the columns. After <code>group_by</code>, text columns that aren't grouped on are gone</td></tr>
+<tr><td>returned no rows</td><td><code>where</code> matched nothing. Values must match exactly, including case</td></tr>
+<tr><td>unknown chart kind</td><td>See <a href="#chart-kinds">chart kinds</a></td></tr>
+<tr><td>`reference` works with</td><td>Use a column, stacked column, line, area or combo chart</td></tr>
+<tr><td>Cannot specify ',' with 's'<br>Unknown format code</td><td>A numeric <code>format</code> is applied to text. Remove it, or check the data holds numbers (no <code>%</code> or <code>$</code> in the CSV)</td></tr>
+<tr><td>division by zero</td><td><code>agg: growth</code> with a first value of 0</td></tr>
+<tr><td>unknown theme keys</td><td>See <a href="#theme">theme</a> for valid keys</td></tr>
+<tr><td>placeholder N not on layout</td><td>Check the numbers with <code>deckgen layouts</code>; each layout has its own</td></tr>
+<tr><td>Permission denied (on save)</td><td>The deck is open in PowerPoint. Close it and rebuild</td></tr>
+</table></div>
+</section>
+
+<section id="extending">
+<h2>Adding a component</h2>
+<p>Register a renderer in <code>src/deckgen/components.py</code>:</p>
+<pre><code>@register("badge")
+def render_badge(slide, box: Box, spec: dict, ctx: Context) -> None:
+    ...</code></pre>
+<p>Then use <code>type: badge</code> in YAML. Regions, stacks, panels, <code>defaults</code> and error reporting work automatically. Add a section for it to this page.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  // copy buttons
+  document.querySelectorAll("pre").forEach(function (pre) {
+    var btn = document.createElement("button");
+    btn.className = "copy"; btn.type = "button"; btn.textContent = "Copy";
+    btn.addEventListener("click", function () {
+      var text = pre.querySelector("code").innerText;
+      var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+    pre.appendChild(btn);
+  });
+
+  // search: hide sections (and their nav links) that don't contain every word
+  var sections = Array.prototype.slice.call(document.querySelectorAll("main section"));
+  var links = Array.prototype.slice.call(document.querySelectorAll("#nav a"));
+  var input = document.getElementById("search");
+  var empty = document.getElementById("no-results");
+  var texts = sections.map(function (s) { return s.textContent.toLowerCase(); });
+  input.addEventListener("input", function () {
+    var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    var shown = 0;
+    sections.forEach(function (s, i) {
+      var hit = words.every(function (w) { return texts[i].indexOf(w) !== -1; });
+      s.classList.toggle("hidden", !hit);
+      if (hit) shown++;
+    });
+    links.forEach(function (a) {
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      var sec = target && target.closest("section");
+      a.classList.toggle("hidden", !!sec && sec.classList.contains("hidden"));
+    });
+    empty.style.display = shown ? "none" : "block";
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && document.activeElement !== input) { e.preventDefault(); input.focus(); }
+    if (e.key === "Escape" && document.activeElement === input) { input.value = ""; input.dispatchEvent(new Event("input")); }
+  });
+
+  // highlight the nav link for the section in view
+  if ("IntersectionObserver" in window) {
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && byId[en.target.id]) {
+          links.forEach(function (a) { a.classList.remove("active"); });
+          byId[en.target.id].classList.add("active");
+        }
+      });
+    }, { rootMargin: "0px 0px -75% 0px" });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  // dark mode toggle, remembered per browser
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem("deckgen-theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  document.getElementById("theme-toggle").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") === "dark" ||
+      (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("deckgen-theme", next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
