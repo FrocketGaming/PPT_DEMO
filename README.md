@@ -507,8 +507,11 @@ Each item takes:
 
 A computed metric is `{source, column, agg}`, and it also accepts the
 [query keys](#data-queries). `agg` is one of `sum` (default), `mean`, `count`, `min`,
-`max`, `first`, `last`, or `growth` (last vs first, as a fraction). With `group_by`, rows
-are first combined per group using `group_agg` (default `sum`), then `agg` is applied.
+`max`, `first`, `last`, or `growth`. `growth` is the relative % change from the first
+value to the last, `(last − first) / first`, returned as a fraction (100 → 150 gives
+`0.5`; format it with `"{:+.0%}"` to show `+50%`). First and last follow row order. With
+`group_by`, rows are first combined per group using `group_agg` (default `sum`), then
+`agg` is applied.
 
 ```yaml
 value: {source: monthly, column: revenue, agg: sum}
