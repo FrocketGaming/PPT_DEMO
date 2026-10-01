@@ -18,20 +18,33 @@
   --link: #1f5d99;
   --key: #1f3a5f;
   --mark: #ffe58a;
+  --thumb: #c3c8d0; --thumb-hover: #a3a9b3;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #15171b; --bg-side: #1b1e23; --bg-code: #20242a; --bg-note: #2b2318; --bg-tip: #18272250;
     --line: #2d3239; --text: #e3e5e8; --muted: #9aa1ab; --accent: #ef8a6e; --link: #7cb3ec;
     --key: #a9c6ea; --mark: #6b5a17;
+    --thumb: #3a4049; --thumb-hover: #4c535e;
+    color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #15171b; --bg-side: #1b1e23; --bg-code: #20242a; --bg-note: #2b2318; --bg-tip: #18272250;
   --line: #2d3239; --text: #e3e5e8; --muted: #9aa1ab; --accent: #ef8a6e; --link: #7cb3ec;
   --key: #a9c6ea; --mark: #6b5a17;
+  --thumb: #3a4049; --thumb-hover: #4c535e;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
+/* scrollbars follow the theme: standard properties, plus WebKit for older Chrome/Safari */
+* { scrollbar-width: thin; scrollbar-color: var(--thumb) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--thumb); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--thumb-hover); }
+::-webkit-scrollbar-corner { background: transparent; }
 html { scroll-padding-top: 16px; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
